@@ -37,7 +37,7 @@ def on_player_exit(player):
     show_block({"name": "2:mediaplayer"})
 
 def on_tick():
-    block = { "name": "1:clock", "full_text": time.strftime('%H:%M:%S') }
+    block = { "name": "1:clock", "full_text": time.strftime('%m/%d %H:%M') }
     show_block(block)
     Timer(1.0, on_tick).start()
 
