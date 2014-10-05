@@ -23,15 +23,11 @@ Use i3-dstatus as your status command in your bar block like so:
 
 ```
 bar {
-    status_command /path/to/i3-dstatus
+    status_command /path/to/i3-dstatus clock
 }
 ```
 
-And run any scripts you use to update the statusline in `exec` or `exec_always` directives in your config:
-
-```
-exec_always /path/to/bar-update-script
-```
+Pass the path of statusline generator scripts you want to run as arguments to i3-dstatus. Passing a relative path will start the script from the generators included with i3-dstatus from the generator path.
 
 ### Updating the Statusline
 

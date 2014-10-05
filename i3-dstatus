@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import glib, json, dbus, dbus.service, time, sys
+import glib, json, dbus, dbus.service, sys, os, threading, subprocess
 from dbus.mainloop.glib import DBusGMainLoop
 
 class DStatusService(dbus.service.Object):
@@ -30,6 +30,32 @@ class DStatusService(dbus.service.Object):
 
 DBusGMainLoop(set_as_default=True)
 service = DStatusService()
+
+script_dir = os.path.dirname(__file__)
+generators = []
+
+# arguments are the names of generators to run
+for generator in sys.argv[1:]:
+    generator_path = ''
+    if generator[0] != '/':
+        generator_path = os.path.join(script_dir, 'generators', generator)
+    else:
+        generator_path = generator
+
+    if os.path.isfile(generator_path):
+        generators.append(generator_path)
+    else:
+        sys.stderr.write("ERROR: could not find generator: {}".format(generator))
+
+class GeneratorThread(threading.Thread):
+    def __init__(self, generator_path):
+        self.generator_path = generator_path
+        threading.Thread.__init__(self)
+    def run(self):
+        subprocess.call(self.generator_path)
+
+for generator_path in generators:
+    GeneratorThread(generator_path).start()
 
 sys.stdout.write('{"version":1}\n[\n[]\n')
 sys.stdout.flush()
