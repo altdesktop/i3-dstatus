@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+import time, dbus
+from threading import Timer
+
+bus = dbus.SessionBus()
+
+def show_block(block):
+    service = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
+    service_method = service.get_dbus_method('show_block', 'com.dubstepdish.i3dstatus')
+    service_method(block)
+
+def on_tick():
+    block = { "name": "clock", "full_text": time.strftime('%m/%d %H:%M') }
+    show_block(block)
+    Timer(1.0, on_tick).start()
+
+Timer(1.0, on_tick).start()
