@@ -1,6 +1,18 @@
 #!/usr/bin/env python3
-import time, dbus
+import time, dbus, yaml, os
 from threading import Timer
+
+time_format = '%m/%d %H:%M'
+
+try:
+    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+    config = yaml.safe_load(f)
+    if 'clock' in config:
+        if 'format' in config['clock']:
+            time_format = config['clock']['format']
+    f.close()
+except FileNotFoundError:
+    pass
 
 bus = dbus.SessionBus()
 
@@ -10,7 +22,7 @@ def show_block(block):
     service_method(block)
 
 def on_tick():
-    block = { "name": "clock", "full_text": time.strftime('%m/%d %H:%M') }
+    block = { "name": "clock", "full_text": time.strftime(time_format) }
     show_block(block)
     Timer(1.0, on_tick).start()
 
