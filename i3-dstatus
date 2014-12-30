@@ -3,11 +3,39 @@
 import glib, json, dbus, dbus.service, sys, os, threading, subprocess
 from dbus.mainloop.glib import DBusGMainLoop
 
+class GeneratorThread(threading.Thread):
+    def __init__(self, generator_path):
+        self.generator_path = generator_path
+        threading.Thread.__init__(self)
+    def run(self):
+        subprocess.call(self.generator_path)
+
 class DStatusService(dbus.service.Object):
-    def __init__(self):
+    def __init__(self, generators):
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus', bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, bus_name, '/com/dubstepdish/i3dstatus')
         self.blocks = []
+        self.generators = generators
+
+        script_dir = os.path.dirname(__file__)
+
+        paths = []
+        # arguments are the names of generators to run
+        for generator in generators:
+            generator_path = ''
+            if generator[0] != '/':
+                generator_path = os.path.join(script_dir, 'generators', generator)
+            else:
+                generator_path = generator
+
+            if os.path.isfile(generator_path):
+                paths.append(generator_path)
+            else:
+                sys.stderr.write("ERROR: could not find generator: {}".format(generator))
+
+        for generator_path in paths:
+            GeneratorThread(generator_path).start()
+
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
     def show_block(self, block):
@@ -22,41 +50,21 @@ class DStatusService(dbus.service.Object):
 
         # filter out blocks with no 'full_text' member
         self.blocks = [b for b in self.blocks if 'full_text' in b and b['full_text'] != '']
-        # sort by block name (right aligned)
-        self.blocks.sort(key=lambda b: str.lower(b['name']), reverse=True)
+
+        # sort by the order the generators were given
+        def sort_blocks(b):
+            if b['name'] in self.generators:
+                return self.generators.index(b['name']) + 1
+            else:
+                return 0
+
+        self.blocks.sort(key=sort_blocks)
 
         sys.stdout.write(',' + json.dumps(self.blocks) + '\n')
         sys.stdout.flush()
 
-class GeneratorThread(threading.Thread):
-    def __init__(self, generator_path):
-        self.generator_path = generator_path
-        threading.Thread.__init__(self)
-    def run(self):
-        subprocess.call(self.generator_path)
-
 DBusGMainLoop(set_as_default=True)
-service = DStatusService()
-
-script_dir = os.path.dirname(__file__)
-generators = []
-
-# arguments are the names of generators to run
-for generator in sys.argv[1:]:
-    generator_path = ''
-    if generator[0] != '/':
-        generator_path = os.path.join(script_dir, 'generators', generator)
-    else:
-        generator_path = generator
-
-    if os.path.isfile(generator_path):
-        generators.append(generator_path)
-    else:
-        sys.stderr.write("ERROR: could not find generator: {}".format(generator))
-
-
-for generator_path in generators:
-    GeneratorThread(generator_path).start()
+service = DStatusService(sys.argv[1:])
 
 sys.stdout.write('{"version":1}\n[\n[]\n')
 sys.stdout.flush()

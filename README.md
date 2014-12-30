@@ -27,7 +27,7 @@ bar {
 }
 ```
 
-Pass the path of statusline generator scripts you want to run as arguments to i3-dstatus. Passing a relative path will start the script from the generators included with i3-dstatus from the generator path.
+Pass the path of statusline generator scripts you want to run as arguments to i3-dstatus. Passing a relative path will start the script from the generators included with i3-dstatus from the generator path. The blocks will appear on i3bar in the order the generators were given on the command line.
 
 ### Configuration
 
@@ -36,8 +36,6 @@ Generator scripts will look for `~/.i3-dstatus.conf` for configuration options. 
 ## Updating the Statusline
 
 The dbus service exposes the method `show_block` to update the statusline. This method takes a dict of variants. Pass an object that conforms to the [i3bar input protocol](http://i3wm.org/docs/i3bar-protocol.html) to show a block.
-
-Blocks will be shown in alphabetical order based on their "name" member. The easiest way to control order is to prefix the "name" member with a number (such as "1:clock").
 
 You can clear a block by omitting the "full_text" member or setting it to the empty string.
 
