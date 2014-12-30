@@ -28,6 +28,13 @@ class DStatusService(dbus.service.Object):
         sys.stdout.write(',' + json.dumps(self.blocks) + '\n')
         sys.stdout.flush()
 
+class GeneratorThread(threading.Thread):
+    def __init__(self, generator_path):
+        self.generator_path = generator_path
+        threading.Thread.__init__(self)
+    def run(self):
+        subprocess.call(self.generator_path)
+
 DBusGMainLoop(set_as_default=True)
 service = DStatusService()
 
@@ -47,12 +54,6 @@ for generator in sys.argv[1:]:
     else:
         sys.stderr.write("ERROR: could not find generator: {}".format(generator))
 
-class GeneratorThread(threading.Thread):
-    def __init__(self, generator_path):
-        self.generator_path = generator_path
-        threading.Thread.__init__(self)
-    def run(self):
-        subprocess.call(self.generator_path)
 
 for generator_path in generators:
     GeneratorThread(generator_path).start()
