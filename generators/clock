@@ -26,4 +26,4 @@ def on_tick():
     show_block(block)
     Timer(1.0, on_tick).start()
 
-Timer(1.0, on_tick).start()
+on_tick()
