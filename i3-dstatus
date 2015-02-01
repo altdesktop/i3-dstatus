@@ -60,7 +60,7 @@ class DStatusService(dbus.service.Object):
 
         self.blocks.sort(key=sort_blocks)
 
-        sys.stdout.write(',' + json.dumps(self.blocks) + '\n')
+        sys.stdout.write(',' + json.dumps(self.blocks, ensure_ascii=False) + '\n')
         sys.stdout.flush()
 
 DBusGMainLoop(set_as_default=True)
