@@ -12,7 +12,8 @@ def show_block(block):
 i3 = i3ipc.Connection()
 
 def on_focus_title_change(i3, e):
-    show_block({"name": "focused-window", "full_text": e.container.name})
+    if e.container.focused:
+        show_block({"name": "focused-window", "full_text": e.container.name})
 
 i3.on('window::focus', on_focus_title_change)
 i3.on('window::title', on_focus_title_change)
