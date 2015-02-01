@@ -39,16 +39,15 @@ The dbus service exposes the method `show_block` to update the statusline. This 
 
 You can clear a block by omitting the "full_text" member or setting it to the empty string.
 
-You can update the statusline from a python script. Just use a method like this one:
+You can update the statusline from a python script. Just use a script like this:
 
 ```python3
 import dbus
 
 bus = dbus.SessionBus()
-def show_block(block):
-    service = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
-    service_method = service.get_dbus_method('show_block', 'com.dubstepdish.i3dstatus')
-    service_method(block)
+bus_object = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
+i3dstatus = dbus.Interface(bus_object, 'com.dubstepdish.i3dstatus')
+i3dstatus.show_block({"name": "test", "full_text": "hello world"})
 ```
 
 You can update the statusline from any language with dbus bindings (which is pretty much all of them). You can even update the statusline from the command line!
