@@ -2,19 +2,15 @@
 
 import i3ipc, dbus
 
-bus = dbus.SessionBus()
-
-def show_block(block):
-    service = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
-    service_method = service.get_dbus_method('show_block', 'com.dubstepdish.i3dstatus')
-    service_method(block)
-
-i3 = i3ipc.Connection()
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                        '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
 
 def on_focus_title_change(i3, e):
     if e.container.focused:
-        show_block({"name": "focused-window", "full_text": e.container.name})
+        i3dstatus.show_block({"name": "focused-window", "full_text": e.container.name})
 
+i3 = i3ipc.Connection()
 i3.on('window::focus', on_focus_title_change)
 i3.on('window::title', on_focus_title_change)
 

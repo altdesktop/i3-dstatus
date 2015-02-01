@@ -14,16 +14,12 @@ try:
 except FileNotFoundError:
     pass
 
-bus = dbus.SessionBus()
-
-def show_block(block):
-    service = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
-    service_method = service.get_dbus_method('show_block', 'com.dubstepdish.i3dstatus')
-    service_method(block)
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                        '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
 
 def on_tick():
-    block = { "name": "clock", "full_text": time.strftime(time_format) }
-    show_block(block)
+    i3dstatus.show_block({"name": "clock", "full_text": time.strftime(time_format)})
     Timer(1.0, on_tick).start()
 
 on_tick()
