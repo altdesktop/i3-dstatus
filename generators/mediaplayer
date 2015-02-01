@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+
+import yaml, os
+from gi.repository import Gio, GLib
+
+def show_block(conn, block):
+    bus_name = 'com.dubstepdish.i3dstatus'
+    object_path = '/com/dubstepdish/i3dstatus'
+    interface_name = 'com.dubstepdish.i3dstatus'
+    method_name = 'show_block'
+    # XXX only allows strings - should be a{sv}
+    parameters = GLib.Variant('(a{ss})', (block,))
+    reply_type = None
+    flags = 0
+    timeout_msec = -1
+    cancellable = None
+    callback = None
+    user_data = None
+    conn.call(bus_name, object_path, interface_name, method_name, parameters,
+              reply_type, flags, timeout_msec, cancellable, callback, user_data)
+
+def properties_changed_callback(conn, sender_name, object_path,
+                                interface_name, signal_name, parameters,
+                                user_data, arg8):
+    """
+    Called when the player properties change, such as metadata or playback status
+    """
+
+    prop_iface, changed_properties, invalidated_properties = parameters
+
+    if prop_iface != 'org.mpris.MediaPlayer2.Player':
+        return
+
+    if 'Metadata' in changed_properties.keys():
+        metadata = changed_properties['Metadata']
+        block = {'name': 'mediaplayer'}
+
+        if 'xesam:artist' in metadata and 'xesam:title' in metadata:
+            block['full_text'] = '{} - {}'.format(metadata['xesam:artist'][0],
+                                                  metadata['xesam:title'])
+        show_block(conn, block)
+
+    print(changed_properties)
+
+if __name__ == '__main__':
+    sender = None
+    try:
+        f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+        config = yaml.safe_load(f)
+        if 'mediaplayer' in config:
+            if 'player' in config['mediaplayer']:
+                sender = 'org.mpris.MediaPlayer2.' + config['mediaplayer']['player']
+        f.close()
+    except FileNotFoundError:
+        pass
+
+    interface_name = 'org.freedesktop.DBus.Properties'
+    member = 'PropertiesChanged'
+    object_path = '/org/mpris/MediaPlayer2'
+    arg0 = None
+    flags = 0
+    callback = properties_changed_callback
+    user_data = None
+    user_data_free_func = None
+
+    conn = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+    conn.signal_subscribe(sender, interface_name, member, object_path, arg0,
+                          flags, callback, user_data, user_data_free_func)
+    GLib.MainLoop().run()
