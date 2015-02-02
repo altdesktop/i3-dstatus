@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+import time, dbus, yaml, os
+from threading import Timer
+
+# default config
+disks = {'/': {}}
+
+try:
+    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+    config = yaml.safe_load(f)
+    if 'disk' in config:
+        disks = config['disk']
+    f.close()
+except FileNotFoundError:
+    pass
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                        '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+MAX_EXPONENT = 4
+
+prefixes = {
+    'binary': { 'symbols': ['B', 'KiB', 'MiB', 'GiB', 'TiB'], 'base': 1024 },
+    'decimal': { 'symbols': ['B', 'kB', 'MB', 'GB', 'TB'], 'base': 1000 },
+    'custom': { 'symbols': ['B', 'KB', 'MB', 'GB', 'TB'], 'base': 1024 }
+}
+
+def format_bytes(disk_bytes, prefix):
+    size = disk_bytes
+    exponent = 0
+    while size >= prefix['base'] and exponent < MAX_EXPONENT:
+        size /= prefix['base']
+        exponent += 1
+
+    return '{} {}'.format(round(size, 1), prefix['symbols'][exponent])
+
+def on_tick():
+    for path, options in disks.items():
+        vfs = os.statvfs(path)
+        prefix_type = 'binary'
+        format_str = '%percentage_free'
+
+        if 'prefix' in options:
+            prefix_type = options['prefix']
+
+        if 'format' in options:
+            format_str = options['format']
+
+        prefix = prefixes[prefix_type]
+
+        bytes_free = vfs.f_bsize * vfs.f_bfree
+        bytes_used = vfs.f_bsize * (vfs.f_blocks - vfs.f_bfree)
+        bytes_total = vfs.f_bsize * vfs.f_blocks
+        bytes_avail = vfs.f_bsize * vfs.f_bavail
+        percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
+        percentage_used_of_avail = round(100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
+        percentage_used = round(100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+        percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
+
+        format_str = format_str.replace('%free', format_bytes(bytes_free, prefix))
+        format_str = format_str.replace('%used', format_bytes(bytes_used, prefix))
+        format_str = format_str.replace('%total', format_bytes(bytes_total, prefix))
+        format_str = format_str.replace('%avail', format_bytes(bytes_avail, prefix))
+        format_str = format_str.replace('%percentage_free', str(percentage_free) + '%')
+        format_str = format_str.replace('%percentage_used_of_avail', str(percentage_used_of_avail) + '%')
+        format_str = format_str.replace('%percentage_used', str(percentage_used) + '%')
+        format_str = format_str.replace('%percentage_avail', str(percentage_avail) + '%')
+        
+        i3dstatus.show_block({"name": "disk", "instance": path, "full_text": format_str})
+
+    Timer(10.0, on_tick).start()
+
+on_tick()
