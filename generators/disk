@@ -33,7 +33,7 @@ def format_bytes(disk_bytes, prefix):
         size /= prefix['base']
         exponent += 1
 
-    return '{} {}'.format(round(size, 1), prefix['symbols'][exponent])
+    return '{} <small>{}</small>'.format(round(size, 1), prefix['symbols'][exponent])
 
 def on_tick():
     for path, options in disks.items():
