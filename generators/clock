@@ -2,7 +2,7 @@
 import time, dbus, yaml, os
 from threading import Timer
 
-time_format = '%m/%d %H:%M'
+time_format = '%m/%d <b>%H:%M</b>'
 
 try:
     f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
