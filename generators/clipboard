@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+
+from gi.repository import Gtk, GLib, Gdk
+import os
+import yaml
+import dbus
+
+truncate_length = 20
+clipboard_format = '<span font="FontAwesome">\uf0ea</span> %text'
+
+try:
+    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+    config = yaml.safe_load(f)
+    if 'clipboard' in config:
+        if 'format' in config['clipboard']:
+            clipboard_format = config['clipboard']['format']
+        if 'truncate_length' in config['clipboard']:
+            truncate_length = config['clipboard']['truncate_length']
+    f.close()
+except FileNotFoundError:
+    pass
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                        '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+
+def format_clipboard_text(cb_text):
+    cb_text = cb_text.replace('\n', '')
+
+    if len(cb_text) > truncate_length:
+        cb_text = cb_text[0:truncate_length] + '...'
+
+    cb_text = clipboard_format.replace('%text', cb_text)
+
+    return cb_text
+
+def on_owner_change(clipboard, event):
+    cb_text = clipboard.wait_for_text()
+
+    if not cb_text:
+        # no clipboard, so clear the block
+        i3dstatus.show_block({"name": "clipboard", "full_text": ""})
+        return
+
+    i3dstatus.show_block({"name": "clipboard", "full_text": format_clipboard_text(cb_text)})
+
+cb_text = clipboard.wait_for_text()
+i3dstatus.show_block({"name": "clipboard", "full_text": format_clipboard_text(cb_text)})
+
+clipboard.connect('owner-change', on_owner_change)
+
+GLib.MainLoop().run()
