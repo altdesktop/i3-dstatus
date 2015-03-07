@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-import time, dbus, yaml, os
+import time, dbus, json, os
 from threading import Timer
-
-# default config
-disks = {'/': {}}
-
-try:
-    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-    config = yaml.safe_load(f)
-    if 'disk' in config:
-        disks = config['disk']
-    f.close()
-except FileNotFoundError:
-    pass
 
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                         '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
+
+disks = {'/': {}}
+
+config = json.loads(i3dstatus.get_config('disk'))
+
+if len(config):
+    disks = config
 
 MAX_EXPONENT = 4
 

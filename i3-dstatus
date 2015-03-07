@@ -2,6 +2,7 @@
 
 import glib, json, dbus, dbus.service, sys, os, threading, subprocess
 from dbus.mainloop.glib import DBusGMainLoop
+import yaml
 
 class GeneratorThread(threading.Thread):
     def __init__(self, generator_path):
@@ -16,6 +17,7 @@ class DStatusService(dbus.service.Object):
         dbus.service.Object.__init__(self, bus_name, '/com/dubstepdish/i3dstatus')
         self.blocks = []
         self.generators = generators
+        self.config = {}
 
         script_dir = os.path.dirname(__file__)
 
@@ -35,6 +37,14 @@ class DStatusService(dbus.service.Object):
 
         for generator_path in paths:
             GeneratorThread(generator_path).start()
+
+        # cache the config
+        try:
+            f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+            self.config = yaml.safe_load(f)
+            f.close()
+        except FileNotFoundError:
+            pass
 
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
@@ -63,10 +73,19 @@ class DStatusService(dbus.service.Object):
         sys.stdout.write(',' + json.dumps(self.blocks, ensure_ascii=False) + '\n')
         sys.stdout.flush()
 
+    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='s', out_signature='s')
+    def get_config(self, block_name):
+        if block_name in self.config:
+            return json.dumps(self.config[block_name], ensure_ascii=False)
+        else:
+            return '{}'
+
+
 DBusGMainLoop(set_as_default=True)
 service = DStatusService(sys.argv[1:])
 
 sys.stdout.write('{"version":1}\n[\n[]\n')
+#sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
 sys.stdout.flush()
 
 main = glib.MainLoop()

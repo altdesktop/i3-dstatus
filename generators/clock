@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-import time, dbus, yaml, os
+import time, dbus, json, os
 from threading import Timer
-
-time_format = '%m/%d <b>%H:%M</b>'
-
-try:
-    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-    config = yaml.safe_load(f)
-    if 'clock' in config:
-        if 'format' in config['clock']:
-            time_format = config['clock']['format']
-    f.close()
-except FileNotFoundError:
-    pass
 
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                         '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
+
+time_format = '%m/%d <b>%H:%M</b>'
+
+config = json.loads(i3dstatus.get_config('clock'))
+
+if 'format' in config:
+    time_format = config['format']
 
 def on_tick():
     i3dstatus.show_block({"name": "clock", "full_text": time.strftime(time_format)})

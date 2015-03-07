@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import yaml, os
+import dbus
+import json
 from gi.repository import Gio, GLib
 
 def show_block(conn, block):
@@ -18,6 +20,15 @@ def show_block(conn, block):
     user_data = None
     conn.call(bus_name, object_path, interface_name, method_name, parameters,
               reply_type, flags, timeout_msec, cancellable, callback, user_data)
+
+def get_config(conn, block_name):
+    # XXX: I was trying to do this purely with GIO as a reference, but it seems
+    # not to support a lot of the things we need, so I'll mix the apis for now
+    # and rewrite later.
+    i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                            '/com/dubstepdish/i3dstatus'),
+                               'com.dubstepdish.i3dstatus')
+    return json.dumps(i3dstatus.get_config('mediaplayer'), ensure_ascii=False)
 
 def properties_changed_callback(conn, sender_name, object_path,
                                 interface_name, signal_name, parameters,
@@ -44,15 +55,9 @@ def properties_changed_callback(conn, sender_name, object_path,
 
 if __name__ == '__main__':
     sender = None
-    try:
-        f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-        config = yaml.safe_load(f)
-        if 'mediaplayer' in config:
-            if 'player' in config['mediaplayer']:
-                sender = 'org.mpris.MediaPlayer2.' + config['mediaplayer']['player']
-        f.close()
-    except FileNotFoundError:
-        pass
+    config = get_config('mediaplayer')
+    if 'player' in config:
+        sender = 'org.mpris.MediaPlayer2.' + config['player']
 
     interface_name = 'org.freedesktop.DBus.Properties'
     member = 'PropertiesChanged'

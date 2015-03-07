@@ -2,27 +2,22 @@
 
 from gi.repository import Gtk, GLib, Gdk
 import os
-import yaml
+import json
 import dbus
-
-truncate_length = 20
-clipboard_format = '<span font="FontAwesome">\uf0ea</span> %text'
-
-try:
-    f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-    config = yaml.safe_load(f)
-    if 'clipboard' in config:
-        if 'format' in config['clipboard']:
-            clipboard_format = config['clipboard']['format']
-        if 'truncate_length' in config['clipboard']:
-            truncate_length = config['clipboard']['truncate_length']
-    f.close()
-except FileNotFoundError:
-    pass
 
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                         '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
+
+truncate_length = 20
+clipboard_format = '<span font="FontAwesome">\uf0ea</span> %text'
+
+config = json.loads(i3dstatus.get_config('clipboard'))
+
+if 'format' in config:
+    clipboard_format = config['format']
+if 'truncate_length' in config:
+    truncate_length = config['truncate_length']
 
 clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
