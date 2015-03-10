@@ -1,14 +1,27 @@
 #!/usr/bin/env python3
 
 import i3ipc, dbus
+import json
 
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                         '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
 
+config = json.loads(i3dstatus.get_config('focused-window'))
+
+truncate_length = 100
+
+if 'truncate-length' in config:
+    truncate_length = config['truncate-length']
+
 def on_focus_title_change(i3, e):
     if e.container.focused:
-        i3dstatus.show_block({"name": "focused-window", "full_text": e.container.name})
+        full_text = e.container.name
+
+        if len(e.container.name) > truncate_length:
+            full_text = e.container.name[0:truncate_length].rstrip() + '…'
+
+        i3dstatus.show_block({"name": "focused-window", "full_text": full_text})
 
 i3 = i3ipc.Connection()
 i3.on('window::focus', on_focus_title_change)
