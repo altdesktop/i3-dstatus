@@ -4,6 +4,7 @@ from gi.repository import Gtk, GLib, Gdk
 import os
 import json
 import dbus
+import cgi
 
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                         '/com/dubstepdish/i3dstatus'),
@@ -22,7 +23,7 @@ if 'truncate-length' in config:
 clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
 def format_clipboard_text(cb_text):
-    cb_text = cb_text.replace('\n', '')
+    cb_text = cgi.escape(cb_text.replace('\n', ''))
 
     if len(cb_text) > truncate_length:
         cb_text = cb_text[0:truncate_length].rstrip() + '…'
