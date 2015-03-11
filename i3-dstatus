@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import glib, json, dbus, dbus.service, sys, os, threading, subprocess
+from gi.repository import GLib
+import json, dbus, dbus.service, sys, os, threading, subprocess
 from dbus.mainloop.glib import DBusGMainLoop
 import yaml
 
@@ -88,5 +89,5 @@ sys.stdout.write('{"version":1}\n[\n[]\n')
 #sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
 sys.stdout.flush()
 
-main = glib.MainLoop()
+main = GLib.MainLoop()
 main.run()
