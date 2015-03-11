@@ -3,6 +3,7 @@
 import yaml, os
 import dbus
 import json
+import cgi
 from gi.repository import Gio, GLib
 
 def show_block(conn, block):
@@ -21,14 +22,14 @@ def show_block(conn, block):
     conn.call(bus_name, object_path, interface_name, method_name, parameters,
               reply_type, flags, timeout_msec, cancellable, callback, user_data)
 
-def get_config(conn, block_name):
+def get_config(conn):
     # XXX: I was trying to do this purely with GIO as a reference, but it seems
     # not to support a lot of the things we need, so I'll mix the apis for now
     # and rewrite later.
     i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
                                                             '/com/dubstepdish/i3dstatus'),
                                'com.dubstepdish.i3dstatus')
-    return json.dumps(i3dstatus.get_config('mediaplayer'), ensure_ascii=False)
+    return json.loads(i3dstatus.get_config('mediaplayer'))
 
 def properties_changed_callback(conn, sender_name, object_path,
                                 interface_name, signal_name, parameters,
@@ -47,11 +48,9 @@ def properties_changed_callback(conn, sender_name, object_path,
         block = {'name': 'mediaplayer'}
 
         if 'xesam:artist' in metadata and 'xesam:title' in metadata:
-            block['full_text'] = '{} - {}'.format(metadata['xesam:artist'][0],
-                                                  metadata['xesam:title'])
+            block['full_text'] = cgi.escape('{} - {}'.format(metadata['xesam:artist'][0],
+                                                             metadata['xesam:title']))
         show_block(conn, block)
-
-    print(changed_properties)
 
 if __name__ == '__main__':
     sender = None
