@@ -47,6 +47,10 @@ class DStatusService(dbus.service.Object):
         except FileNotFoundError:
             pass
 
+        if 'general' in self.config:
+            if 'order' in self.config['general']:
+                # `order` in the config overrides generator order given on the command line
+                self.generators = self.config['general']['order']
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
     def show_block(self, block):
