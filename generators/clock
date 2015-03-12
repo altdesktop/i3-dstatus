@@ -13,8 +13,11 @@ config = json.loads(i3dstatus.get_config('clock'))
 if 'format' in config:
     time_format = config['format']
 
-def on_tick():
-    i3dstatus.show_block({"name": "clock", "full_text": time.strftime(time_format)})
-    Timer(1.0, on_tick).start()
+last_time = ''
 
-on_tick()
+while True:
+    time_string = time.strftime(time_format)
+    if time_string != last_time:
+        last_time = time_string
+        i3dstatus.show_block({"name": "clock", "full_text": time.strftime(time_format)})
+    time.sleep(1)
