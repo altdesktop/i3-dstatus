@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+import dbus
+import time
+import json
+import netifaces
+import os
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                                        '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+default_up = '%iface: %ip'
+default_down = '%iface: down'
+
+config = json.loads(i3dstatus.get_config('ethernet'))
+
+if not config:
+    config = {}
+    # find the first ethernet interface
+    for iface in netifaces.interfaces():
+        if iface.startswith('lo'):
+            # loopback device
+            continue
+        if os.path.isdir('/sys/class/net/{}/wireless'.format(iface)):
+            # wireless device
+            continue
+
+        config[iface] = {'format-up': default_up, 'format-down': default_down}
+
+while True:
+    for iface, opts in config.items():
+        addr = netifaces.ifaddresses(iface)
+        if netifaces.AF_INET in addr:
+            # device is up
+            ip = 'no ip'
+
+            if 'addr' in addr[netifaces.AF_INET][0]:
+                ip = addr[netifaces.AF_INET][0]['addr']
+
+            full_text = opts['format-up'].replace('%ip', ip)
+            full_text = full_text.replace('%iface', iface)
+            i3dstatus.show_block({'name': 'ethernet', 'instance': iface, 'full_text': full_text})
+
+        else:
+            # device is down
+            full_text = opts['format-down']
+            full_text = full_text.replace('%iface', iface)
+            i3dstatus.show_block({'name': 'ethernet', 'instance': iface, 'full_text': full_text})
+
+    time.sleep(3)
