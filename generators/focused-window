@@ -15,17 +15,21 @@ truncate_length = 100
 if 'truncate-length' in config:
     truncate_length = config['truncate-length']
 
+def process_title(name):
+    if len(name) > truncate_length:
+        name = name[0:truncate_length].rstrip() + '…'
+
+    return cgi.escape(name)
+
 def on_focus_title_change(i3, e):
     if e.container.focused:
-        full_text = e.container.name
-
-        if len(e.container.name) > truncate_length:
-            full_text = e.container.name[0:truncate_length].rstrip() + '…'
-
-        i3dstatus.show_block({"name": "focused-window", "full_text": cgi.escape(full_text)})
+        full_text = process_title(e.container.name)
+        i3dstatus.show_block({"name": "focused-window", "full_text": full_text})
 
 i3 = i3ipc.Connection()
 i3.on('window::focus', on_focus_title_change)
 i3.on('window::title', on_focus_title_change)
+
+i3dstatus.show_block({"name": "focused-window", "full_text": process_title(i3.get_tree().find_focused().name)})
 
 i3.main()
