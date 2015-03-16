@@ -10,7 +10,7 @@ i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstat
                            'com.dubstepdish.i3dstatus')
 
 default_up = '%iface: %ip'
-default_down = '%iface: down'
+default_down = '%iface: <b>down</b>'
 
 config = json.loads(i3dstatus.get_config('ethernet'))
 
