@@ -33,8 +33,8 @@ def format_bytes(disk_bytes, prefix):
 def on_tick():
     for path, options in disks.items():
         vfs = os.statvfs(path)
-        prefix_type = 'binary'
-        format_str = '%percentage_free'
+        prefix_type = 'custom'
+        format_str = '%free'
 
         if 'prefix' in options:
             prefix_type = options['prefix']
