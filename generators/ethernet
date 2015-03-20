@@ -5,8 +5,9 @@ import json
 import netifaces
 import os
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
-                                                        '/com/dubstepdish/i3dstatus'),
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
 
 default_up = '%iface: %ip'
@@ -39,12 +40,20 @@ while True:
 
             full_text = opts['format-up'].replace('%ip', ip)
             full_text = full_text.replace('%iface', iface)
-            i3dstatus.show_block({'name': 'ethernet', 'instance': iface, 'full_text': full_text})
+            i3dstatus.show_block({
+                'name': 'ethernet',
+                'instance': iface,
+                'full_text': full_text
+                })
 
         else:
             # device is down
             full_text = opts['format-down']
             full_text = full_text.replace('%iface', iface)
-            i3dstatus.show_block({'name': 'ethernet', 'instance': iface, 'full_text': full_text})
+            i3dstatus.show_block({
+                'name': 'ethernet',
+                'instance': iface,
+                'full_text': full_text
+                })
 
     time.sleep(3)

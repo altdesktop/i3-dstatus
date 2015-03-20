@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-import yaml, os
 import dbus
 import json
 import cgi
 from gi.repository import Gio, GLib
+
 
 def show_block(conn, block):
     bus_name = 'com.dubstepdish.i3dstatus'
@@ -19,23 +19,28 @@ def show_block(conn, block):
     cancellable = None
     callback = None
     user_data = None
-    conn.call(bus_name, object_path, interface_name, method_name, parameters,
-              reply_type, flags, timeout_msec, cancellable, callback, user_data)
+    conn.call(bus_name, object_path, interface_name, method_name,
+              parameters, reply_type, flags, timeout_msec, cancellable,
+              callback, user_data)
+
 
 def get_config(conn):
     # XXX: I was trying to do this purely with GIO as a reference, but it seems
     # not to support a lot of the things we need, so I'll mix the apis for now
     # and rewrite later.
-    i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
-                                                            '/com/dubstepdish/i3dstatus'),
+    i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                               'com.dubstepdish.i3dstatus',
+                               '/com/dubstepdish/i3dstatus'),
                                'com.dubstepdish.i3dstatus')
     return json.loads(i3dstatus.get_config('mediaplayer'))
+
 
 def properties_changed_callback(conn, sender_name, object_path,
                                 interface_name, signal_name, parameters,
                                 user_data, arg8):
     """
-    Called when the player properties change, such as metadata or playback status
+    Called when the player properties change, such as metadata or playback
+    status
     """
 
     prop_iface, changed_properties, invalidated_properties = parameters
@@ -48,8 +53,9 @@ def properties_changed_callback(conn, sender_name, object_path,
         block = {'name': 'mediaplayer'}
 
         if 'xesam:artist' in metadata and 'xesam:title' in metadata:
-            block['full_text'] = cgi.escape('{} - {}'.format(metadata['xesam:artist'][0],
-                                                             metadata['xesam:title']))
+            block['full_text'] = cgi.escape(
+                    '{} - {}'.format(metadata['xesam:artist'][0],
+                                     metadata['xesam:title']))
         show_block(conn, block)
 
 if __name__ == '__main__':

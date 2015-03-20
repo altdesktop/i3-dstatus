@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 from gi.repository import Gtk, GLib, Gdk
-import os
 import json
 import dbus
 import cgi
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
-                                                        '/com/dubstepdish/i3dstatus'),
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
 
 truncate_length = 20
@@ -22,6 +22,7 @@ if 'truncate-length' in config:
 
 clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
+
 def format_clipboard_text(cb_text):
     cb_text = cgi.escape(cb_text.replace('\n', ''))
 
@@ -32,6 +33,7 @@ def format_clipboard_text(cb_text):
 
     return cb_text
 
+
 def on_owner_change(clipboard, event):
     cb_text = clipboard.wait_for_text()
 
@@ -40,10 +42,15 @@ def on_owner_change(clipboard, event):
         i3dstatus.show_block({"name": "clipboard", "full_text": ""})
         return
 
-    i3dstatus.show_block({"name": "clipboard", "full_text": format_clipboard_text(cb_text)})
+    i3dstatus.show_block({"name": "clipboard",
+                          "full_text": format_clipboard_text(cb_text)})
 
 cb_text = clipboard.wait_for_text()
-i3dstatus.show_block({"name": "clipboard", "full_text": format_clipboard_text(cb_text)})
+
+i3dstatus.show_block({
+                "name": "clipboard",
+                "full_text": format_clipboard_text(cb_text)
+            })
 
 clipboard.connect('owner-change', on_owner_change)
 

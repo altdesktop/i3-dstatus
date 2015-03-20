@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-import time, dbus, json, os
-from threading import Timer
+import time
+import dbus
+import json
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
-                                                        '/com/dubstepdish/i3dstatus'),
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
 
 time_format = '%m/%d <b>%H:%M</b>'
@@ -19,5 +21,8 @@ while True:
     time_string = time.strftime(time_format)
     if time_string != last_time:
         last_time = time_string
-        i3dstatus.show_block({"name": "clock", "full_text": time.strftime(time_format)})
+        i3dstatus.show_block({
+            "name": "clock",
+            "full_text": time.strftime(time_format)
+        })
     time.sleep(1)

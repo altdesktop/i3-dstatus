@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-import time, dbus, json, os
+import dbus
+import json
+import os
 from threading import Timer
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
-                                                        '/com/dubstepdish/i3dstatus'),
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
                            'com.dubstepdish.i3dstatus')
 
 disks = {'/': {}}
@@ -16,10 +19,11 @@ if len(config):
 MAX_EXPONENT = 4
 
 prefixes = {
-    'binary': { 'symbols': ['B', 'KiB', 'MiB', 'GiB', 'TiB'], 'base': 1024 },
-    'decimal': { 'symbols': ['B', 'kB', 'MB', 'GB', 'TB'], 'base': 1000 },
-    'custom': { 'symbols': ['B', 'KB', 'MB', 'GB', 'TB'], 'base': 1024 }
+    'binary': {'symbols': ['B', 'KiB', 'MiB', 'GiB', 'TiB'], 'base': 1024},
+    'decimal': {'symbols': ['B', 'kB', 'MB', 'GB', 'TB'], 'base': 1000},
+    'custom': {'symbols': ['B', 'KB', 'MB', 'GB', 'TB'], 'base': 1024}
 }
+
 
 def format_bytes(disk_bytes, prefix):
     size = disk_bytes
@@ -28,7 +32,9 @@ def format_bytes(disk_bytes, prefix):
         size /= prefix['base']
         exponent += 1
 
-    return '{} <small>{}</small>'.format(round(size, 1), prefix['symbols'][exponent])
+    return '{} <small>{}</small>'.format(round(size, 1),
+                                         prefix['symbols'][exponent])
+
 
 def on_tick():
     for path, options in disks.items():
@@ -49,20 +55,37 @@ def on_tick():
         bytes_total = vfs.f_bsize * vfs.f_blocks
         bytes_avail = vfs.f_bsize * vfs.f_bavail
         percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
-        percentage_used_of_avail = round(100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
-        percentage_used = round(100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+
+        percentage_used_of_avail = round(
+                100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
+
+        percentage_used = round(
+                100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+
         percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
 
-        format_str = format_str.replace('%free', format_bytes(bytes_free, prefix))
-        format_str = format_str.replace('%used', format_bytes(bytes_used, prefix))
-        format_str = format_str.replace('%total', format_bytes(bytes_total, prefix))
-        format_str = format_str.replace('%avail', format_bytes(bytes_avail, prefix))
-        format_str = format_str.replace('%percentage_free', str(percentage_free) + '%')
-        format_str = format_str.replace('%percentage_used_of_avail', str(percentage_used_of_avail) + '%')
-        format_str = format_str.replace('%percentage_used', str(percentage_used) + '%')
-        format_str = format_str.replace('%percentage_avail', str(percentage_avail) + '%')
-        
-        i3dstatus.show_block({"name": "disk", "instance": path, "full_text": format_str})
+        format_str = format_str.replace(
+                '%free', format_bytes(bytes_free, prefix))
+        format_str = format_str.replace('%used',
+                                        format_bytes(bytes_used, prefix))
+        format_str = format_str.replace('%total',
+                                        format_bytes(bytes_total, prefix))
+        format_str = format_str.replace('%avail',
+                                        format_bytes(bytes_avail, prefix))
+        format_str = format_str.replace('%percentage_free',
+                                        str(percentage_free) + '%')
+        format_str = format_str.replace('%percentage_used_of_avail',
+                                        str(percentage_used_of_avail) + '%')
+        format_str = format_str.replace('%percentage_used',
+                                        str(percentage_used) + '%')
+        format_str = format_str.replace('%percentage_avail',
+                                        str(percentage_avail) + '%')
+
+        i3dstatus.show_block({
+            "name": "disk",
+            "instance": path,
+            "full_text": format_str
+            })
 
     Timer(10.0, on_tick).start()
 
