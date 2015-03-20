@@ -41,7 +41,7 @@ You can clear a block by omitting the "full_text" member or setting it to the em
 
 You can update the statusline from a python script. Just use a script like this:
 
-```python3
+```python
 import dbus
 
 bus = dbus.SessionBus()
