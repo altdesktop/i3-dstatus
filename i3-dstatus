@@ -37,7 +37,7 @@ class DStatusService(dbus.service.Object):
         # arguments are the names of generators to run
         for generator in generators:
             generator_path = ''
-            if generator[0] != '/':
+            if generator[0] != '/' and generator[0] != '~':
                 generator_path = os.path.join(script_dir, 'generators',
                                               generator)
             else:
