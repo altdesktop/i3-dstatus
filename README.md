@@ -27,7 +27,7 @@ bar {
 }
 ```
 
-Pass the path of statusline generator scripts you want to run as arguments to i3-dstatus. Passing a relative path will start the script from the generators included with i3-dstatus from the generator path. The blocks will appear on i3bar in the order the generators were given on the command line.
+Pass the path of statusline generator scripts you want to run as arguments to i3-dstatus. Passing a relative path will start the script from the generators included with i3-dstatus from the generator path. Using an absolute path or a ~/ home relative path will call the appropriate path. The blocks will appear on i3bar in the order the generators were given on the command line.
 
 ### Configuration
 
