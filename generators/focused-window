@@ -30,7 +30,8 @@ def on_focus_title_change(i3, e):
         full_text = process_title(e.container.name)
         i3dstatus.show_block({
             "name": "focused-window",
-            "full_text": full_text
+            "full_text": full_text,
+            "markup": "pango"
             })
 
 i3 = i3ipc.Connection()
@@ -39,7 +40,8 @@ i3.on('window::title', on_focus_title_change)
 
 i3dstatus.show_block({
             "name": "focused-window",
-            "full_text": process_title(i3.get_tree().find_focused().name)
+            "full_text": process_title(i3.get_tree().find_focused().name),
+            "markup": "pango"
             })
 
 i3.main()

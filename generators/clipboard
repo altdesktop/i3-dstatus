@@ -43,13 +43,16 @@ def on_owner_change(clipboard, event):
         return
 
     i3dstatus.show_block({"name": "clipboard",
-                          "full_text": format_clipboard_text(cb_text)})
+                          "full_text": format_clipboard_text(cb_text),
+                          "markup": "pango"
+                          })
 
 cb_text = clipboard.wait_for_text()
 
 i3dstatus.show_block({
                 "name": "clipboard",
-                "full_text": format_clipboard_text(cb_text)
+                "full_text": format_clipboard_text(cb_text),
+                "markup": "pango"
             })
 
 clipboard.connect('owner-change', on_owner_change)

@@ -23,6 +23,7 @@ while True:
         last_time = time_string
         i3dstatus.show_block({
             "name": "clock",
-            "full_text": time.strftime(time_format)
+            "full_text": time.strftime(time_format),
+            "markup": "pango"
         })
     time.sleep(1)

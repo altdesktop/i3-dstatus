@@ -84,7 +84,8 @@ def on_tick():
         i3dstatus.show_block({
             "name": "disk",
             "instance": path,
-            "full_text": format_str
+            "full_text": format_str,
+            "markup": "pango"
             })
 
     Timer(10.0, on_tick).start()

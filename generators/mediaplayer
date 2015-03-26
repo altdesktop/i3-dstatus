@@ -50,7 +50,7 @@ def properties_changed_callback(conn, sender_name, object_path,
 
     if 'Metadata' in changed_properties.keys():
         metadata = changed_properties['Metadata']
-        block = {'name': 'mediaplayer'}
+        block = {'name': 'mediaplayer', 'markup': 'pango'}
 
         if 'xesam:artist' in metadata and 'xesam:title' in metadata:
             block['full_text'] = cgi.escape(
