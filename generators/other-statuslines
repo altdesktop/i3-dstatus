@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+
+import ijson.backends.yajl2 as ijson
+from subprocess import Popen, PIPE
+import json
+import sys
+import dbus
+from threading import Thread
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+statuslines = ['i3status']
+
+config = i3dstatus.get_config('other-statuslines')
+
+if 'statuslines' in config:
+    if isinstance(config['statuslines'], str):
+        statuslines = [config['statuslines']]
+    if isinstance(config['statuslines'], list):
+        statuslines = config['statuslines']
+
+
+class OtherStatusline(Thread):
+    def __init__(self, statusline_path):
+        self.statusline_path = statusline_path
+        Thread.__init__(self)
+
+    def run(self):
+        with Popen(self.statusline_path, stdout=PIPE) as proc:
+            header = json.loads(str(proc.stdout.readline(), 'UTF-8'))
+
+            if header['version'] != 1:
+                print('invalid status header', sys.stderr)
+                sys.exit(1)
+
+            parser = ijson.parse(proc.stdout, buf_size=1)
+
+            block = {}
+            last_key = ''
+
+            for prefix, event, value in parser:
+                if event == 'start_map':
+                    block = {}
+                elif event == 'map_key':
+                    last_key = value
+                elif event in ['null', 'boolean', 'string', 'number']:
+                    block[last_key] = value
+                elif event == 'end_map':
+                    # XXX: we probably need a method to show more than one
+                    # block
+                    i3dstatus.show_block(block)
+
+for statusline in statuslines:
+    OtherStatusline(statusline).start()
