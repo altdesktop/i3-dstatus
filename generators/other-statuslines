@@ -33,8 +33,8 @@ class OtherStatusline(Thread):
             header = json.loads(str(proc.stdout.readline(), 'UTF-8'))
 
             if header['version'] != 1:
-                print('invalid status header', sys.stderr)
-                sys.exit(1)
+                print('other-statuslines: invalid status header', sys.stderr)
+                return
 
             parser = ijson.parse(proc.stdout, buf_size=1)
 
