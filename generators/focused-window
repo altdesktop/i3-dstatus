@@ -19,6 +19,9 @@ if 'truncate-length' in config:
 
 
 def process_title(name):
+    if not name:
+        return ""
+
     if len(name) > truncate_length:
         name = name[0:truncate_length].rstrip() + '…'
 
