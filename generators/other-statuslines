@@ -17,10 +17,10 @@ statuslines = ['i3status']
 config = i3dstatus.get_config('other-statuslines')
 
 if 'statuslines' in config:
-    if isinstance(config['statuslines'], str):
-        statuslines = [config['statuslines']]
-    if isinstance(config['statuslines'], list):
-        statuslines = config['statuslines']
+    if isinstance(config, str):
+        statuslines = [config]
+    if isinstance(config, list):
+        statuslines = config
 
 
 class OtherStatusline(Thread):
