@@ -134,12 +134,16 @@ class DStatusService(dbus.service.Object):
             return '{}'
 
 
-DBusGMainLoop(set_as_default=True)
-service = DStatusService(sys.argv[1:])
+def main():
+    DBusGMainLoop(set_as_default=True)
+    DStatusService(sys.argv[1:])
 
-sys.stdout.write('{"version":1}\n[\n[]\n')
-# sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
-sys.stdout.flush()
+    sys.stdout.write('{"version":1}\n[\n[]\n')
+    # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
+    sys.stdout.flush()
 
-main = GLib.MainLoop()
-main.run()
+    main = GLib.MainLoop()
+    main.run()
+
+if __name__ == '__main__':
+    main()
