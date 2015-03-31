@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='i3dstatus',
+    name='i3-dstatus',
     version='0.0.1',
     author='Tony Crisci',
     author_email='tony@dubstepdish.com',
