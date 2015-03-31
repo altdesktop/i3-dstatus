@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='i3-dstatus',
-    version='0.0.2',
+    version='0.0.3',
     author='Tony Crisci',
     author_email='tony@dubstepdish.com',
     url='https://github.com/acrisci/i3-dstatus',
@@ -10,7 +10,7 @@ setup(
     description='The ultimate DIY statusline generator for i3',
     long_description=open('README.rst').read(),
 
-    install_requires=['yaml', 'netifaces', 'i3ipc', 'ijson'],
+    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'ijson'],
 
     classifiers=[
         'Development Status :: 4 - Beta',
