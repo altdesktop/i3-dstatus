@@ -7,7 +7,8 @@ setup(
     author_email='tony@dubstepdish.com',
     url='https://github.com/acrisci/i3-dstatus',
     license='BSD',
-    description='Another i3 statusline generator',
+    description='The ultimate DIY statusline generator for i3',
+    long_description=open('README.rst').read(),
 
     classifiers=[
         'Development Status :: 4 - Beta',
