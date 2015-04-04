@@ -34,6 +34,18 @@ in a cron!).
 -  Update the statusline from any language (even from the command line!)
 -  No complicated plugin api to learn
 
+Installing
+----------
+
+i3-dstatus is on `PyPI <https://pypi.python.org/pypi/i3-dstatus>`__.
+
+::
+
+    pip install i3-dstatus
+
+You'll also need ``python-gobject`` and ``python-dbus`` from your package
+manager.
+
 Usage
 -----
 
@@ -42,7 +54,7 @@ Use i3-dstatus as your status command in your bar block like so:
 ::
 
     bar {
-        status_command /path/to/i3-dstatus clock
+        status_command i3-dstatus clock
     }
 
 Pass the path of statusline generator scripts you want to run as
@@ -100,7 +112,7 @@ Contributing
 ------------
 
 Please report bugs, request feature, write documentation, and add
-examples to the ``examples`` directory. i3-dstatus is a community
+generators to the ``i3dstatus/generators`` directory. i3-dstatus is a community
 project so feedback is welcome!
 
 License
