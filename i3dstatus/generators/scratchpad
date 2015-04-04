@@ -19,29 +19,53 @@ config = json.loads(i3dstatus.get_config('scratchpad'))
 if 'format' in config:
     scratchpad_format = config['format']
 
+last_full_text = ''
 
-def get_block():
-    block = {"name": "scratchpad", "markup": "pango"}
+
+def show_block():
+    global last_full_text
+    block = {"name": "scratchpad", "markup": "pango", "full_text": ""}
 
     scratchpad = i3.get_tree().scratchpad().leaves()
 
-    if not scratchpad:
-        return block
+    if scratchpad:
+        classes = []
+        has_urgent = False
+        urgent_fmt = '<span color="red">{}</span>'
 
-    classes = ', '.join([l.window_class for l in scratchpad])
-    full_text = scratchpad_format.replace('%classes', cgi.escape(classes))
-    full_text = full_text.replace('%count', str(len(scratchpad)))
+        for l in scratchpad:
+            window_class = cgi.escape(l.window_class)
+            if l.urgent:
+                has_urgent = True
+                classes.append(urgent_fmt.format(window_class))
+            else:
+                classes.append(window_class)
 
-    block['full_text'] = full_text
+        full_text = scratchpad_format.replace('%classes',
+                                              ', '.join(classes))
+        if has_urgent:
+            full_text = full_text.replace('%count',
+                                          urgent_fmt.format(len(scratchpad)))
+        else:
+            full_text = full_text.replace('%count', str(len(scratchpad)))
 
-    return block
+        block['full_text'] = full_text
+
+    if block['full_text'] != last_full_text:
+        last_full_text = block['full_text']
+        i3dstatus.show_block(block)
 
 
 def on_move(i3, e):
-    i3dstatus.show_block(get_block())
+    show_block()
 
-i3dstatus.show_block(get_block())
+
+def on_urgent(i3, e):
+    show_block()
+
+show_block()
 
 i3.on('window::move', on_move)
+i3.on('window::urgent', on_urgent)
 
 i3.main()
