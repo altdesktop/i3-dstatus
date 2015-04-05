@@ -29,9 +29,23 @@ class DStatusService(dbus.service.Object):
                                      '/com/dubstepdish/i3dstatus')
         self.blocks = []
         self.generators = generators
-        self.config = {}
+        self.config = {"general": {}}
 
         script_dir = os.path.dirname(__file__)
+
+        # cache the config
+        try:
+            f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
+            self.config = yaml.safe_load(f)
+            f.close()
+        except FileNotFoundError:
+            pass
+
+        if 'generators' in self.config['general']:
+            # append the generators in the config to the list of generators
+            for generator in self.config['general']['generators']:
+                if generator not in self.generators:
+                    self.generators.append(generator)
 
         paths = []
         # arguments are the names of generators to run
@@ -48,25 +62,16 @@ class DStatusService(dbus.service.Object):
                 paths.append(generator_path)
             else:
                 sys.stderr.write(
-                        "ERROR: could not find generator: {}".format(generator)
+                        "Could not find generator: {}".format(generator)
                         )
 
         for generator_path in paths:
             GeneratorThread(generator_path).start()
 
-        # cache the config
-        try:
-            f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-            self.config = yaml.safe_load(f)
-            f.close()
-        except FileNotFoundError:
-            pass
-
-        if 'general' in self.config:
-            if 'order' in self.config['general']:
-                # `order` in the config overrides generator order given on the
-                # command line
-                self.generators = self.config['general']['order']
+        if 'order' in self.config['general']:
+            # `order` in the config overrides generator order given on the
+            # command line
+            self.generators = self.config['general']['order']
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
     def show_block(self, block):
