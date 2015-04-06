@@ -15,8 +15,7 @@ class DStatusService(dbus.service.Object):
     def __init__(self):
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
                                         bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, bus_name,
-                                     '/com/dubstepdish/i3dstatus')
+        super().__init__(bus_name, '/com/dubstepdish/i3dstatus')
         self.blocks = []
         self.config = {"general": {}}
 
