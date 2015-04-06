@@ -9,6 +9,7 @@ import sys
 import os
 import yaml
 import weakref
+import threading
 from dbus.mainloop.glib import DBusGMainLoop
 from aioevents import Event
 
@@ -121,6 +122,11 @@ class Block(dbus.service.Object):
     def __init__(self, manager):
         self._manager = weakref.ref(manager)  # Don't create reference cycles
 
+        # Slight misnomer. Only locks out changed events. Doesn't actually prevent other changes.
+        self._change_lock = threading.Lock()
+
+        self._props = {}
+
         self.changed.handler(self._call_manager_changed)
 
     def _call_manager_changed(self):
@@ -138,15 +144,25 @@ class Block(dbus.service.Object):
         Performs a bulk update of properties. Issues only one changed event for
         the entire update.
         """
-        for prop, value in values.items():
-            if prop in self._WELL_KNOWN_PROPS:
-                # FIXME: Don't by-pass validation, but don't set off more changed events
-                setattr(self, '_'+prop, value)
-            else:
-                if not prop.startswith('_'):
-                    raise KeyError("Vendor-specific entries must start with '_'")
-                self._props[prop] = value
+        with self._change_lock:
+            for prop, value in values.items():
+                if prop in self._WELL_KNOWN_PROPS:
+                    # FIXME: Don't by-pass validation, but don't set off more changed events
+                    setattr(self, '_'+prop, value)
+                else:
+                    if not prop.startswith('_'):
+                        raise KeyError("Vendor-specific entries must start with '_'")
+                    self._props[prop] = value
         self.changed()
+
+    def _changed(self):
+        """
+        Raise a changed event, unless it's been locked out by update()
+        """
+        have_lock = self._change_lock.acquire()
+        if have_lock:
+            self._change_lock.release()
+            self.changed()
 
 
     # I wish I could do this with metaprogramming, but I can't think of a
@@ -353,14 +369,17 @@ class Block(dbus.service.Object):
         self._separator_block_width = int(value)
         self.changed()
 
-
-    markup = property()
+    markup = property(
+        """A string that indicates how the text of the block should be parsed.
+        Set to "pango" to use Pango markup. Set to "none" to not use any markup
+        (default)."""
+        )
     _markup = "none"
 
     @dbus.service.method(INTERFACE, out_signature='s')
     @markup.getter
     def get_markup(self):
-        return self._separator
+        return self._markup
 
     @dbus.service.method(INTERFACE, in_signature='s')
     @markup.setter
@@ -368,6 +387,23 @@ class Block(dbus.service.Object):
         if value not in ('pango', 'none'):
             raise ValueError("Must be one of 'pango' or 'none'")
         self._markup = value
+        self.changed()
+
+    order = property(
+        """An integer to give the order of blocks. Lower numbers appear 
+        "sooner". Blocks of the same order may appear in any order."""
+        )
+    _order = "none"
+
+    @dbus.service.method(INTERFACE, out_signature='s')
+    @order.getter
+    def get_order(self):
+        return self._order
+
+    @dbus.service.method(INTERFACE, in_signature='s')
+    @order.setter
+    def set_order(self, value):
+        self._order = value
         self.changed()
 
 
