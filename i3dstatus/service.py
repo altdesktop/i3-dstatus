@@ -97,12 +97,15 @@ class BlockManager(dbus.service.Object):
                          '\n')
         sys.stdout.flush()
 
-    @dbus.service.method(INTERFACE, in_signature='s', out_signature='s')
-    def get_config(self, block_name):
-        if block_name in self.config:
-            return json.dumps(self.config[block_name], ensure_ascii=False)
+    @dbus.service.method(INTERFACE, in_signature='s', out_signature='v')
+    def get_config(self, genname):
+        """
+        Get a generator's configuration block
+        """
+        if genname in self.config:
+            return self.config[genname]
         else:
-            return '{}'
+            return {}
 
 
 class Block(dbus.service.Object):
