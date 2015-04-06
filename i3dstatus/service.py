@@ -12,7 +12,7 @@ import yaml
 
 DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
 
-class DStatusService(dbus.service.Object):
+class BlockManager(dbus.service.Object):
     """
     Manages block objects.
     """
@@ -83,6 +83,14 @@ class DStatusService(dbus.service.Object):
             return '{}'
 
 
+class Block(dbus.service.Object):
+    """
+    A single block in i3bar.
+    """
+    INTERFACE = 'com.dubstepdish.i3dstatus.Block'
+    # TODO
+
+
 def start():
     DBusGMainLoop(set_as_default=True)
 
@@ -92,7 +100,7 @@ def start():
     except FileNotFoundError:
         config = {}
 
-    manager = DStatusService(config)
+    manager = BlockManager(config)
 
     sys.stdout.write('{"version":1}\n[\n[]\n')
     # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
