@@ -151,8 +151,6 @@ class Block(dbus.service.Object):
                 if prop in self._WELL_KNOWN_PROPS:
                     setattr(self, prop, value)
                 else:
-                    if not prop.startswith('_'):
-                        raise KeyError("Vendor-specific entries must start with '_'")
                     self._props[prop] = value
         self.changed()
 
