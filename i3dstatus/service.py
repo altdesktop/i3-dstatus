@@ -20,6 +20,8 @@ class BlockManager(dbus.service.Object):
     INTERFACE = 'com.dubstepdish.i3dstatus.Manager'
 
     blockchanged = Event("Fires when one of the managed blocks changes.")
+    blockadded = Event("Fires when a new block is added.")
+    blockremoved = Event("Fires when a block is removed.")
 
     def __init__(self, config):
         bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
@@ -36,6 +38,14 @@ class BlockManager(dbus.service.Object):
     @dbus.service.signal(INTERFACE, signature="o")
     def block_changed(self, block):
         pass
+
+    @dbus.service.method(INTERFACE, in_signature="sa{sv}", out_signature="o")
+    def create_block(self, name, defaults=None):
+        pass  # TODO
+
+    @dbus.service.method(INTERFACE, in_signature="o")
+    def remove_block(self, block):
+        pass  # TODO
 
     @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def show_block(self, block):
@@ -98,7 +108,29 @@ class Block(dbus.service.Object):
     A single block in i3bar.
     """
     INTERFACE = 'com.dubstepdish.i3dstatus.Block'
-    # TODO
+
+    full_text = property("Long text of block")
+    _full_text = ""
+
+    @dbus.service.method(INTERFACE, out_signature='s')
+    @full_text.getter
+    def get_full_text(self):
+        return self._full_text
+
+    @dbus.service.method(INTERFACE, in_signature='s')
+    def set_full_text(self, value):
+        # TODO: Type validation
+        self._full_text = value
+
+    short_text = property("TODO")
+    color = property("TODO")
+    min_width = property("TODO")
+    align = property("TODO")
+    name = property("TODO")
+    instance = property("TODO")
+    urgent = property("TODO")
+    separator = property("TODO")
+    separator_block_width = property("TODO")
 
 
 def start():
