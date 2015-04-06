@@ -6,32 +6,18 @@ import dbus
 import dbus.service
 import sys
 import os
-import threading
-import subprocess
 from dbus.mainloop.glib import DBusGMainLoop
 import yaml
 
 
-class GeneratorThread(threading.Thread):
-    def __init__(self, generator_path):
-        self.generator_path = generator_path
-        threading.Thread.__init__(self)
-
-    def run(self):
-        subprocess.call(self.generator_path)
-
-
 class DStatusService(dbus.service.Object):
-    def __init__(self, generators):
+    def __init__(self):
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
                                         bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, bus_name,
                                      '/com/dubstepdish/i3dstatus')
         self.blocks = []
-        self.generators = generators
         self.config = {"general": {}}
-
-        script_dir = os.path.dirname(__file__)
 
         # cache the config
         try:
@@ -46,31 +32,6 @@ class DStatusService(dbus.service.Object):
             for generator in self.config['general']['generators']:
                 if generator not in self.generators:
                     self.generators.append(generator)
-
-        paths = []
-        # arguments are the names of generators to run
-        for generator in generators:
-            generator_path = ''
-            if os.path.isabs(os.path.expanduser(generator)):
-                generator_path = os.path.expanduser(generator)
-            else:
-                generator_path = os.path.join(script_dir, 'generators',
-                                              generator)
-
-            if os.path.isfile(generator_path):
-                paths.append(generator_path)
-            else:
-                sys.stderr.write(
-                        "Could not find generator: {}".format(generator)
-                        )
-
-        for generator_path in paths:
-            GeneratorThread(generator_path).start()
-
-        if 'order' in self.config['general']:
-            # `order` in the config overrides generator order given on the
-            # command line
-            self.generators = self.config['general']['order']
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
     def show_block(self, block):
@@ -140,7 +101,7 @@ class DStatusService(dbus.service.Object):
 
 def start():
     DBusGMainLoop(set_as_default=True)
-    DStatusService(sys.argv[1:])
+    DStatusService()
 
     sys.stdout.write('{"version":1}\n[\n[]\n')
     # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
