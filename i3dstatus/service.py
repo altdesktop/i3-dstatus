@@ -113,6 +113,10 @@ class Block(dbus.service.Object):
         # We can safely ignore the events this generates, because nobody's had the chance to attach to our events yet.
         self.update(props)
 
+    @dbus.service.signal(INTERFACE, signature="iiu")
+    def click(self, x, y, button):
+        pass
+
     @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def update(self, values):
         """
