@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
-
+"""
+Defines and manages d-bus services and objects.
+"""
 from gi.repository import GLib
 import json
 import dbus
@@ -26,12 +27,6 @@ class DStatusService(dbus.service.Object):
             f.close()
         except FileNotFoundError:
             pass
-
-        if 'generators' in self.config['general']:
-            # append the generators in the config to the list of generators
-            for generator in self.config['general']['generators']:
-                if generator not in self.generators:
-                    self.generators.append(generator)
 
     @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
     def show_block(self, block):
@@ -77,15 +72,6 @@ class DStatusService(dbus.service.Object):
         self.blocks = [b for b in self.blocks if 'full_text' in b and
                        b['full_text']]
 
-        # sort by the order the generators were given
-        def sort_blocks(b):
-            if b['name'] in self.generators:
-                return self.generators.index(b['name']) + 1
-            else:
-                return 0
-
-        self.blocks.sort(key=sort_blocks)
-
         sys.stdout.write(',' + json.dumps(self.blocks, ensure_ascii=False) +
                          '\n')
         sys.stdout.flush()
@@ -109,6 +95,3 @@ def start():
 
     main = GLib.MainLoop()
     main.run()
-
-if __name__ == '__main__':
-    start()
