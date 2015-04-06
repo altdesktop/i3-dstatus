@@ -183,7 +183,7 @@ class Block(dbus.service.Object):
     @full_text.setter
     def set_full_text(self, value):
         self._full_text = str(value)
-        self.changed()
+        self._changed()
 
     short_text = property(
         """Where appropriate, the short_text (string) entry should also be
@@ -206,7 +206,7 @@ class Block(dbus.service.Object):
     @short_text.setter
     def set_short_text(self, value):
         self._short_text = str(value)
-        self.changed()
+        self._changed()
 
     color = property(
         """To make the current state of the information easy to spot, colors 
@@ -227,7 +227,7 @@ class Block(dbus.service.Object):
     @color.setter
     def set_color(self, value):
         self._color = str(value)
-        self.changed()
+        self._changed()
 
     min_width = property(
         """The minimum width (in pixels) of the block. If the content of the
@@ -253,7 +253,7 @@ class Block(dbus.service.Object):
         if not isinstance(value, (int, str)):
             raise ValueError("Must be an int or str")
         self._min_width = value
-        self.changed()
+        self._changed()
 
     align = property(
         """Align text on the center, right or left (default) of the block, when
@@ -273,7 +273,7 @@ class Block(dbus.service.Object):
         if value not in ('left', 'center', 'right'):
             raise ValueError("Must be one of 'left', 'center', or 'right'")
         self._align = value
-        self.changed()
+        self._changed()
 
     name = property(
         """Every block should have a unique name (string) entry so that it can
@@ -291,7 +291,7 @@ class Block(dbus.service.Object):
     @name.setter
     def set_name(self, value):
         self._name = str(value)
-        self.changed()
+        self._changed()
 
     instance = property(
         """Make sure to also specify an instance (string) entry where
@@ -310,7 +310,7 @@ class Block(dbus.service.Object):
     @instance.setter
     def set_instance(self, value):
         self._instance = str(value)
-        self.changed()
+        self._changed()
 
     urgent = property(
         """A boolean which specifies whether the current value is urgent.
@@ -329,7 +329,7 @@ class Block(dbus.service.Object):
     @urgent.setter
     def set_urgent(self, value):
         self._urgent = bool(value)
-        self.changed()
+        self._changed()
 
     separator = property(
         """A boolean which specifies whether a separator line should be drawn
@@ -348,7 +348,7 @@ class Block(dbus.service.Object):
     @separator.setter
     def set_separator(self, value):
         self._separator = bool(value)
-        self.changed()
+        self._changed()
 
     separator_block_width = property(
         """The amount of pixels to leave blank after the block. In the middle
@@ -367,7 +367,7 @@ class Block(dbus.service.Object):
     @separator_block_width.setter
     def set_separator_block_width(self, value):
         self._separator_block_width = int(value)
-        self.changed()
+        self._changed()
 
     markup = property(
         """A string that indicates how the text of the block should be parsed.
@@ -387,7 +387,7 @@ class Block(dbus.service.Object):
         if value not in ('pango', 'none'):
             raise ValueError("Must be one of 'pango' or 'none'")
         self._markup = value
-        self.changed()
+        self._changed()
 
     order = property(
         """An integer to give the order of blocks. Lower numbers appear 
@@ -404,7 +404,7 @@ class Block(dbus.service.Object):
     @order.setter
     def set_order(self, value):
         self._order = value
-        self.changed()
+        self._changed()
 
 
 def start():
