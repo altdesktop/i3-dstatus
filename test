@@ -1,0 +1,12 @@
+#!/bin/sh
+
+./i3-dstatus &
+
+sleep 1s
+
+dbus-send --session --dest=com.dubstepdish.i3dstatus --type=method_call /com/dubstepdish/i3dstatus \
+        com.dubstepdish.i3dstatus.Manager.create_block string:'spam' dict:string:string:full_string,'Spam!'
+dbus-send --session --dest=com.dubstepdish.i3dstatus --type=method_call /com/dubstepdish/i3dstatus \
+        com.dubstepdish.i3dstatus.Manager.create_block string:'eggs' dict:string:string:full_string,'Eggs!'
+
+wait %1

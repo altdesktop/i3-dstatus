@@ -53,6 +53,8 @@ class BlockManager(dbus.service.Object):
         self.blocks[id] = blk = Block(id, defaults)
         blk.changed.handler(lambda: self.blockchanged(blk))
 
+        self.blockadded(blk)
+
         return blk
 
     @dbus.service.method(INTERFACE, in_signature="o")
@@ -63,6 +65,7 @@ class BlockManager(dbus.service.Object):
         # XXX: Will dbus hand us a real object or just a path?
         block.remove_from_connection()
         del self.blocks[block.id]
+        self.blockremoved(block)
 
     def __iter__(self):
         """
@@ -154,6 +157,12 @@ class Block(dbus.service.Object):
         Sets a user-defined property.
         """
         self._props[name] = value
+
+    def __dict__(self):
+        rv = {}
+        rv.update(vars(self))
+        rv.update(self._props)
+        return rv
 
     # I wish I could do this with metaprogramming, but I can't think of a
     # solution that's not tedious and worth the time.

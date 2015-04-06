@@ -2,7 +2,7 @@
 Deals with the interface to i3bar.
 """
 import asyncio
-import ijson
+# import ijson
 import signal
 import json
 
@@ -18,6 +18,8 @@ CONT_SIGNAL = signal.SIGUSR2
 
 
 def BarManager(stream, blocks, config):
+    # FIXME: Make this a coroutine
+    # FIXME: Use a streaming JSON writer?
     # Set signal handlers
     stream.write(json.dumps({
         "version": 1,
@@ -27,3 +29,24 @@ def BarManager(stream, blocks, config):
     }))
     stream.write('\n[')
     stream.flush()
+
+    def merge(*dicts):
+        rv = {}
+        for d in dicts:
+            rv.update(d)
+        return rv
+
+    @blocks.blockchanged.handler
+    @blocks.blockadded.handler
+    @blocks.blockremoved.handler
+    def writeout(*_):
+        # FIXME: Implement flow control so that updates get lost rather than backed up
+        stream.write(json.dumps([
+            block.__dict__()
+            for block in blocks
+        ]))
+        stream.write(',')
+        stream.flush()
+
+def InputParser(stream, blocks, config):
+    return NotImplemented

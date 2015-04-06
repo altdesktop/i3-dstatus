@@ -5,7 +5,7 @@ import yaml
 import asyncio
 from dbus.mainloop.glib import DBusGMainLoop
 from .service import BlockManager
-from barproto import BarManager, InputParser
+from .barproto import BarManager, InputParser
 from .gbulb import gbulb  # Uggggggggggggggggggggggggggggghhhhhhhhhhhhhhhhhhhh
 
 
