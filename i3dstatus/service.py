@@ -7,8 +7,9 @@ import dbus
 import dbus.service
 import sys
 import os
-from dbus.mainloop.glib import DBusGMainLoop
 import yaml
+from dbus.mainloop.glib import DBusGMainLoop
+from aioevents import Event
 
 DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
 
@@ -18,6 +19,8 @@ class BlockManager(dbus.service.Object):
     """
     INTERFACE = 'com.dubstepdish.i3dstatus.Manager'
 
+    blockchanged = Event("Fires when one of the managed blocks changes.")
+
     def __init__(self, config):
         bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
         super().__init__(bus_name, '/com/dubstepdish/i3dstatus')
@@ -26,6 +29,13 @@ class BlockManager(dbus.service.Object):
 
         # cache the config
         self.config = config
+
+        # Can't do this statically due to instances
+        self.blockchanged.handler(self.block_changed)
+
+    @dbus.service.signal(INTERFACE, signature="o")
+    def block_changed(self, block):
+        pass
 
     @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def show_block(self, block):
