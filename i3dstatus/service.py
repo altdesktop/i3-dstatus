@@ -114,7 +114,9 @@ class Block(dbus.service.Object):
     INTERFACE = 'com.dubstepdish.i3dstatus.Block'
     _WELL_KNOWN_PROPS = set(
         'full_text', 'short_text', 'color', 'min_width', 'align', 'name',
-        'instance', 'urgent', 'separator', 'separator_block_width', 'markup'
+        'instance', 'urgent', 'separator', 'separator_block_width', 'markup',
+        # Not in the spec; used for our purposes
+        'order',
         )
 
     changed = Event("Raised when a property is set")
@@ -147,8 +149,7 @@ class Block(dbus.service.Object):
         with self._change_lock:
             for prop, value in values.items():
                 if prop in self._WELL_KNOWN_PROPS:
-                    # FIXME: Don't by-pass validation, but don't set off more changed events
-                    setattr(self, '_'+prop, value)
+                    setattr(self, prop, value)
                 else:
                     if not prop.startswith('_'):
                         raise KeyError("Vendor-specific entries must start with '_'")
@@ -164,6 +165,19 @@ class Block(dbus.service.Object):
             self._change_lock.release()
             self.changed()
 
+    @dbus.service.method(INTERFACE, in_signature='s', out_signature='v')
+    def get_prop(self, name):
+        """
+        Gets a user-defined property.
+        """
+        return self._props.get(name)
+
+    @dbus.service.method(INTERFACE, in_signature='sv')
+    def set_prop(self, name, value):
+        """
+        Sets a user-defined property.
+        """
+        self._props[name] = value
 
     # I wish I could do this with metaprogramming, but I can't think of a
     # solution that's not tedious and worth the time.
