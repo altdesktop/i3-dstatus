@@ -8,6 +8,7 @@ import threading
 from aioevents import Event
 
 DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
+PATH_PREFIX = '/com/dubstepdish/i3dstatus'
 
 
 class BlockManager(dbus.service.Object):
@@ -22,9 +23,8 @@ class BlockManager(dbus.service.Object):
 
     def __init__(self, config):
         bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
-        super().__init__(bus_name, '/com/dubstepdish/i3dstatus')
-        self.blocks = []
-        self.config = {"general": {}}
+        super().__init__(bus_name, PATH_PREFIX)
+        self.blocks = {}
 
         # cache the config
         self.config = config
@@ -37,12 +37,39 @@ class BlockManager(dbus.service.Object):
         pass
 
     @dbus.service.method(INTERFACE, in_signature="sa{sv}", out_signature="o")
-    def create_block(self, name, defaults=None):
-        pass  # TODO
+    def create_block(self, id, defaults=None):
+        """
+        Create a block with the given ID and return it.
+        """
+        if defaults is None:
+            defaults = {}  # Need a new instance each time
+
+        if id in self.blocks:
+            raise KeyError("Block already exists")
+
+        # Set some defaults
+        defaults.setdefault('name', id)
+
+        self.blocks[id] = blk = Block(id, defaults)
+        blk.changed.handler(lambda: self.blockchanged(blk))
+
+        return blk
 
     @dbus.service.method(INTERFACE, in_signature="o")
     def remove_block(self, block):
-        pass  # TODO
+        """
+        Remove a block.
+        """
+        # XXX: Will dbus hand us a real object or just a path?
+        block.remove_from_connection()
+        del self.blocks[block.id]
+
+    def __iter__(self):
+        """
+        Yield the blocks in their defined order
+        """
+        for block in sorted(self.blocks.values(), key=lambda b: b.order):
+            yield block
 
     @dbus.service.method(INTERFACE, in_signature='s', out_signature='v')
     def get_config(self, genname):
@@ -72,24 +99,19 @@ class Block(dbus.service.Object):
     changed = Event("Raised when a property is set")
     # FIXME: Have a D-bus signal of the same name
 
-    def __init__(self, manager):
-        self._manager = weakref.ref(manager)  # Don't create reference cycles
+    def __init__(self, id, props):
+        bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
+        super().__init__(bus_name, '{}/{}'.format(PATH_PREFIX, id))
+
+        self.id = id
 
         # Slight misnomer. Only locks out changed events. Doesn't actually prevent other changes.
         self._change_lock = threading.Lock()  # XXX: Use asyncio.Lock? Only if .update() is a coroutine
 
         self._props = {}
 
-        self.changed.handler(self._call_manager_changed)
-
-    def _call_manager_changed(self):
-        """
-        Propogates block changes to the parent manager's blockchanged event
-        """
-        man = self._manager
-        if man is not None:
-            man.blockchanged(self)
-
+        # We can safely ignore the events this generates, because nobody's had the chance to attach to our events yet.
+        self.update(props)
 
     @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def update(self, values):
