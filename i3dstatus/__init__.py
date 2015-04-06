@@ -13,7 +13,7 @@ def start():
     Orchestrates the start of everything, injects dependencies, sets up event
     loops, and all the other things that need to happen
     """
-    ml = DBusGMainLoop(set_as_default=True)
+    DBusGMainLoop(set_as_default=True)
     asyncio.set_event_loop_policy(gbulb.GLibEventLoopPolicy())
 
     try:
@@ -28,4 +28,8 @@ def start():
     # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
     sys.stdout.flush()
 
-    ml.run()
+    main = GLib.MainLoop()
+    main.run()
+
+    # Do this when gbulb is better
+    #asyncio.get_event_loop().run_forever()
