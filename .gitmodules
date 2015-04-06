@@ -1,0 +1,3 @@
+[submodule "i3dstatus/gbulb"]
+	path = i3dstatus/gbulb
+	url = https://astronouth7303@bitbucket.org/montag451/gbulb.git
