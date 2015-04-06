@@ -10,24 +10,24 @@ import os
 from dbus.mainloop.glib import DBusGMainLoop
 import yaml
 
+DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
 
 class DStatusService(dbus.service.Object):
-    def __init__(self):
-        bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
-                                        bus=dbus.SessionBus())
+    """
+    Manages block objects.
+    """
+    INTERFACE = 'com.dubstepdish.i3dstatus.Manager'
+
+    def __init__(self, config):
+        bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
         super().__init__(bus_name, '/com/dubstepdish/i3dstatus')
         self.blocks = []
         self.config = {"general": {}}
 
         # cache the config
-        try:
-            f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-            self.config = yaml.safe_load(f)
-            f.close()
-        except FileNotFoundError:
-            pass
+        self.config = config
 
-    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
+    @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def show_block(self, block):
         # apply config options to the block
         block_config = {}
@@ -75,8 +75,7 @@ class DStatusService(dbus.service.Object):
                          '\n')
         sys.stdout.flush()
 
-    @dbus.service.method('com.dubstepdish.i3dstatus',
-                         in_signature='s', out_signature='s')
+    @dbus.service.method(INTERFACE, in_signature='s', out_signature='s')
     def get_config(self, block_name):
         if block_name in self.config:
             return json.dumps(self.config[block_name], ensure_ascii=False)
@@ -86,7 +85,14 @@ class DStatusService(dbus.service.Object):
 
 def start():
     DBusGMainLoop(set_as_default=True)
-    DStatusService()
+
+    try:
+        with open("{}/.i3-dstatus.conf".format(os.path.expanduser('~'))) as f:
+            config = yaml.safe_load(f)
+    except FileNotFoundError:
+        config = {}
+
+    manager = DStatusService(config)
 
     sys.stdout.write('{"version":1}\n[\n[]\n')
     # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
