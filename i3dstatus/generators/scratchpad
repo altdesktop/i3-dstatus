@@ -1,32 +1,22 @@
 #!/usr/bin/env python3
 
 import i3ipc
-import dbus
-import json
 import cgi
-
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+from i3dstatus.utils import get_config, make_block
 
 i3 = i3ipc.Connection()
 
-scratchpad_format = 'scratchpad: <b>%classes</b>'
+config = get_config('scratchpad')
 
-config = json.loads(i3dstatus.get_config('scratchpad'))
-
-if 'format' in config:
-    scratchpad_format = config['format']
-
-last_full_text = ''
+scratchpad_format = config.get('format', 'scratchpad: <b>%classes</b>')
 
 
-def show_block():
-    global last_full_text
-    block = {"name": "scratchpad", "markup": "pango", "full_text": ""}
+def show_block(block):
 
     scratchpad = i3.get_tree().scratchpad().leaves()
+    print(scratchpad)
+
+    full_text = "(None)"
 
     if scratchpad:
         classes = []
@@ -49,23 +39,25 @@ def show_block():
         else:
             full_text = full_text.replace('%count', str(len(scratchpad)))
 
-        block['full_text'] = full_text
-
-    if block['full_text'] != last_full_text:
-        last_full_text = block['full_text']
-        i3dstatus.show_block(block)
+    print(full_text)
+    block.set_full_text(full_text)
 
 
-def on_move(i3, e):
-    show_block()
+def on_event(i3, e):
+    global block
+    show_block(block)
 
 
-def on_urgent(i3, e):
-    show_block()
+with make_block(
+    "scratchpad",
+    {"name": "scratchpad", "markup": "pango"}
+) as bgen:
+    block = bgen()
 
-show_block()
+    show_block(block)
 
-i3.on('window::move', on_move)
-i3.on('window::urgent', on_urgent)
+    i3.on('window::move', on_event)
+    i3.on('window::urgent', on_event)
+    i3.on('window::floating', on_event)
 
-i3.main()
+    i3.main()
