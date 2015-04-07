@@ -58,13 +58,15 @@ class BlockManager(dbus.service.Object):
         return blk
 
     @dbus.service.method(INTERFACE, in_signature="o")
-    def remove_block(self, block):
+    def remove_block(self, blockpath):
         """
         Remove a block.
         """
+        id = blockpath[len(PATH_PREFIX)+1:]
+        block = self.blocks[id]
         # XXX: Will dbus hand us a real object or just a path?
         block.remove_from_connection()
-        del self.blocks[block.id]
+        del self.blocks[id]
         self.blockremoved(block)
 
     def __iter__(self):
@@ -82,7 +84,7 @@ class BlockManager(dbus.service.Object):
         if genname in self.config:
             return self.config[genname]
         else:
-            return {}
+            return {'': ''}
 
 
 class Block(dbus.service.Object):
@@ -159,7 +161,11 @@ class Block(dbus.service.Object):
         self._props[name] = value
 
     def json(self):
-        rv = {prop: getattr(self, prop) for prop in self._WELL_KNOWN_PROPS}
+        rv = {
+            prop: getattr(self, prop)
+            for prop in self._WELL_KNOWN_PROPS
+            if '_'+prop in vars(self)
+        }
         rv.update(self._props)
         return rv
 
