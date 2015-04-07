@@ -1,16 +1,10 @@
 #!/usr/bin/env python3
 
 from gi.repository import Gtk, GLib, Gdk
-import dbus
 import cgi
-from i3dstatus.utils import make_block
+from i3dstatus.utils import get_config, make_block
 
-i3dstatus = dbus.Interface(
-    dbus.SessionBus().get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus'),
-    'com.dubstepdish.i3dstatus.Manager'
-)
-
-config = i3dstatus.get_config('clipboard')
+config = get_config('clipboard')
 
 clipboard_format = config.get('format', '<span size="small" font="FontAwesome">\uf0ea</span> %text')
 truncate_length = config.get('truncate-length', 20)

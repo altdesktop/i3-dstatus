@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 import time
-import dbus
-from i3dstatus.utils import make_block
+from i3dstatus.utils import get_config, make_block
 
-i3dstatus = dbus.Interface(
-    dbus.SessionBus().get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus'),
-    'com.dubstepdish.i3dstatus.Manager'
-)
-
-config = i3dstatus.get_config('clock')
+config = get_config('clock')
 
 time_format = config.get('format', '%m/%d <b>%H:%M</b>')
 
