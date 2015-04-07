@@ -3,6 +3,7 @@
 from gi.repository import Gtk, GLib, Gdk
 import dbus
 import cgi
+from i3dstatus.utils import make_block
 
 i3dstatus = dbus.Interface(
     dbus.SessionBus().get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus'),
@@ -43,22 +44,16 @@ def on_owner_change(clipboard, event):
 
 cb_text = clipboard.wait_for_text()
 
-blockpath = i3dstatus.create_block(
+with make_block(
     'clipboard',
     {
         "name": "clipboard",
         "full_text": format_clipboard_text(cb_text),
         "markup": "pango"
-    })
-
-try:
-    block = dbus.Interface(
-        dbus.SessionBus().get_object('com.dubstepdish.i3dstatus', blockpath),
-        'com.dubstepdish.i3dstatus.Block'
-    )
+    }
+) as bgen:
+    block = bgen()
 
     clipboard.connect('owner-change', on_owner_change)
 
     GLib.MainLoop().run()
-finally:
-    i3dstatus.remove_block(blockpath)
