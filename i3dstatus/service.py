@@ -132,7 +132,7 @@ class Block(dbus.service.Object):
         Performs a bulk update of properties. Issues only one changed event for
         the entire update.
         """
-        # XXX: Rewrite as aio coroutine?
+        # XXX: Rewrite to validate without fragile locks
         with self._change_lock:
             for prop, value in values.items():
                 if prop in self._WELL_KNOWN_PROPS:
