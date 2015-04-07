@@ -42,10 +42,10 @@ def BarManager(stream, blocks, config):
     def writeout(*_):
         # FIXME: Implement flow control so that updates get lost rather than backed up
         stream.write(json.dumps([
-            block.__dict__()
+            block.json()
             for block in blocks
         ]))
-        stream.write(',')
+        stream.write(',\n')
         stream.flush()
 
 def InputParser(stream, blocks, config):

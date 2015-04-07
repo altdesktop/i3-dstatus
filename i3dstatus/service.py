@@ -158,9 +158,8 @@ class Block(dbus.service.Object):
         """
         self._props[name] = value
 
-    def __dict__(self):
-        rv = {}
-        rv.update(vars(self))
+    def json(self):
+        rv = {prop: getattr(self, prop) for prop in self._WELL_KNOWN_PROPS}
         rv.update(self._props)
         return rv
 
