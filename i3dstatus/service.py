@@ -14,6 +14,8 @@ PATH_PREFIX = '/com/dubstepdish/i3dstatus'
 class BlockManager(dbus.service.Object):
     """
     Manages block objects.
+
+    FIXME: Implement org.freedesktop.DBus.ObjectManager
     """
     INTERFACE = 'com.dubstepdish.i3dstatus.Manager'
 
@@ -84,7 +86,7 @@ class BlockManager(dbus.service.Object):
         if genname in self.config:
             return self.config[genname]
         else:
-            return {'': ''}
+            return dbus.Dictionary(signature='sv')
 
 
 class Block(dbus.service.Object):
@@ -92,6 +94,8 @@ class Block(dbus.service.Object):
     A single block in i3bar.
 
     Doc strings blatently ripped from http://i3wm.org/docs/i3bar-protocol.html
+
+    FIXME: Implement org.freedesktop.DBus.Properties
     """
     INTERFACE = 'com.dubstepdish.i3dstatus.Block'
     _WELL_KNOWN_PROPS = {
