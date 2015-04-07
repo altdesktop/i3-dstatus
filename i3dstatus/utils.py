@@ -25,7 +25,7 @@ class make_block:
             BlockManager.INTERFACE
         )
 
-    def __enter__(self, service):
+    def __enter__(self):
         self.blockpath = bpath = self.service.create_block(self.bid, self.defaults)
         return lambda: dbus.Interface(
             dbus.SessionBus().get_object(DBUS_SERVICE, bpath),
