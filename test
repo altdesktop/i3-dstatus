@@ -5,8 +5,8 @@
 sleep 1s
 
 dbus-send --session --dest=com.dubstepdish.i3dstatus --type=method_call /com/dubstepdish/i3dstatus \
-        com.dubstepdish.i3dstatus.Manager.create_block string:'spam' dict:string:string:full_string,'Spam!'
+        com.dubstepdish.i3dstatus.Manager.create_block string:'spam' dict:string:string:full_text,'Spam!'
 dbus-send --session --dest=com.dubstepdish.i3dstatus --type=method_call /com/dubstepdish/i3dstatus \
-        com.dubstepdish.i3dstatus.Manager.create_block string:'eggs' dict:string:string:full_string,'Eggs!'
+        com.dubstepdish.i3dstatus.Manager.create_block string:'eggs' dict:string:string:full_text,'Eggs!'
 
 wait %1
