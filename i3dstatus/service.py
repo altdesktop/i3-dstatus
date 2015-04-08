@@ -117,6 +117,16 @@ class Block(dbus.service.Object):
         }
 
     full_text = ""
+    short_text = ""
+    color = ""
+    min_width = 0
+    align = "left"
+    name = ""
+    instance = ""
+    urgent = False
+    separator = True
+    separator_block_width = 9
+    markup = 'none'
     order = 0
 
     changed = Event("Raised when a property is set")
@@ -138,6 +148,20 @@ class Block(dbus.service.Object):
     @dbus.service.signal(INTERFACE, signature="iiu")
     def click(self, x, y, button):
         pass
+
+    @dbus.service.method(INTERFACE, in_signature='s', out_signature='v')
+    def get(self, name):
+        """
+        Gets a property.
+        """
+        return getattr(self, name)
+
+    @dbus.service.method(INTERFACE, in_signature='sv')
+    def set(self, name, value):
+        """
+        Sets a property.
+        """
+        setattr(self, name, value)
 
     @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def update(self, values):
@@ -196,7 +220,7 @@ class Block(dbus.service.Object):
         rv = {
             prop: getattr(self, prop)
             for prop in self.__properties__
-            if hasattr(self, prop)
+            if prop in vars(self)
         }
         rv.update(self._props)
         return rv
@@ -229,12 +253,15 @@ class Block(dbus.service.Object):
             raise TypeError("Unknown interface {}".format(interface_name))
 
     @dbus.service.signal(PROPINTERFACE, signature="sa{sv}a{sv}")
-    def PropertiesChanged(self, interface_name, changed_properties, invalidated_properties):
+    def PropertiesChanged(
+        self, interface_name, changed_properties, invalidated_properties
+    ):
         pass
 
     # This exists doubly because dbus-python is lame
     @dbus.service.method(
-        "org.freedesktop.DBus.Introspectable", in_signature='', out_signature='s',
+        "org.freedesktop.DBus.Introspectable",
+        in_signature='', out_signature='s',
         path_keyword='object_path', connection_keyword='connection')
     def Introspect(self, object_path, connection):
         intro = etree.fromstring(
@@ -242,5 +269,8 @@ class Block(dbus.service.Object):
         )
         iface = intro.find("interface[@name='{}']".format(self.INTERFACE))
         for name, (sig, _) in self.__properties__.items():
-            etree.SubElement(iface, 'Property', name=name, type=sig, access="readwrite")
+            etree.SubElement(
+                iface, 'Property',
+                name=name, type=sig, access="readwrite"
+            )
         return etree.tostring(intro)
