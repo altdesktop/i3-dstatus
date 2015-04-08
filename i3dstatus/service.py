@@ -3,8 +3,9 @@ Defines and manages d-bus services and objects.
 """
 import dbus
 import dbus.service
-import weakref
 import threading
+import xml.etree.ElementTree as etree
+import io
 from aioevents import Event
 
 DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
@@ -98,15 +99,24 @@ class Block(dbus.service.Object):
     FIXME: Implement org.freedesktop.DBus.Properties
     """
     INTERFACE = 'com.dubstepdish.i3dstatus.Block'
-    _WELL_KNOWN_PROPS = {
-        'full_text', 'short_text', 'color', 'min_width', 'align', 'name',
-        'instance', 'urgent', 'separator', 'separator_block_width', 'markup',
+    PROPINTERFACE = 'org.freedesktop.DBus.Properties'
+    __properties__ = {
+        'full_text' : ('s', NotImplemented),
+        'short_text': ('s', NotImplemented),
+        'color'     : ('s', NotImplemented),
+        'min_width' : ('u', NotImplemented),
+        'align'     : ('s', NotImplemented),
+        'name'      : ('s', NotImplemented),
+        'instance'  : ('s', NotImplemented),
+        'urgent'    : ('b', NotImplemented),
+        'separator' : ('b', NotImplemented),
+        'separator_block_width': ('u', NotImplemented),
+        'markup'    : ('s', NotImplemented),
         # Not in the spec; used for our purposes
-        'order',
+        'order'     : ('i', NotImplemented),
         }
 
     changed = Event("Raised when a property is set")
-    # FIXME: Have a D-bus signal of the same name
 
     def __init__(self, id, props):
         bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
@@ -135,11 +145,12 @@ class Block(dbus.service.Object):
         # XXX: Rewrite to validate without fragile locks
         with self._change_lock:
             for prop, value in values.items():
-                if prop in self._WELL_KNOWN_PROPS:
+                if prop in self.__properties__:
                     setattr(self, prop, value)
                 else:
                     self._props[prop] = value
         self.changed()
+        self.PropertiesChanged(self.INTERFACE, values, [])
 
     def _changed(self):
         """
@@ -167,11 +178,54 @@ class Block(dbus.service.Object):
     def json(self):
         rv = {
             prop: getattr(self, prop)
-            for prop in self._WELL_KNOWN_PROPS
+            for prop in self.__properties__
             if '_'+prop in vars(self)
         }
         rv.update(self._props)
         return rv
+
+    # I have to do this because dbus-python doesn't support properties.
+    # Maybe gio's version does?
+
+    @dbus.service.method(PROPINTERFACE, in_signature='ss', out_signature='v')
+    def Get(self, interface_name, property_name):
+        if interface_name in (self.INTERFACE, ''):
+            return getattr(self, property_name)
+        else:
+            raise TypeError("Unknown interface {}".format(interface_name))
+
+    @dbus.service.method(PROPINTERFACE, in_signature='ssv')
+    def Set(self, interface_name, property_name, value):
+        if interface_name in (self.INTERFACE, ''):
+            return setattr(self, property_name, value)
+        else:
+            raise TypeError("Unknown interface {}".format(interface_name))
+
+    @dbus.service.method(PROPINTERFACE, in_signature='s', out_signature='a{sv}')
+    def GetAll(self, interface_name):
+        if interface_name in (self.INTERFACE, ''):
+            return {
+                name: getattr(self, name)
+                for name in self.__properties__
+            }
+        else:
+            raise TypeError("Unknown interface {}".format(interface_name))
+
+    @dbus.service.signal(PROPINTERFACE, signature="sa{sv}a{sv}")
+    def PropertiesChanged(self, interface_name, changed_properties, invalidated_properties):
+        pass
+
+    @dbus.service.method(
+        "org.freedesktop.DBus.Introspectable", in_signature='', out_signature='s',
+        path_keyword='object_path', connection_keyword='connection')
+    def Introspect(self, object_path, connection): 
+        intro = etree.fromstring(
+            super().Introspect(object_path, connection)
+        )
+        iface = intro.find("interface[@name='{}']".format(self.INTERFACE))
+        for name, (sig, _) in self.__properties__.items():
+            etree.SubElement(iface, 'Property', name=name, type=sig, access="readwrite")
+        return etree.tostring(intro)
 
     # I wish I could do this with metaprogramming, but I can't think of a
     # solution that's not tedious and worth the time.
