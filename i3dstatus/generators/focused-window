@@ -23,7 +23,7 @@ def process_title(name):
 def on_focus_title_change(i3, e):
     global block
     if e.container.focused:
-        block.set_full_text(process_title(e.container.name))
+        block.set('full_text', process_title(e.container.name))
 
 i3 = i3ipc.Connection()
 i3.on('window::focus', on_focus_title_change)

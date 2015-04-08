@@ -40,7 +40,7 @@ def show_block(block):
             full_text = full_text.replace('%count', str(len(scratchpad)))
 
     print(full_text)
-    block.set_full_text(full_text)
+    block.set('full_text', full_text)
 
 
 def on_event(i3, e):
