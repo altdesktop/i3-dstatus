@@ -1,16 +1,13 @@
 """
 Defines and manages d-bus services and objects.
 """
-from gi.repository import GLib
 import json
 import dbus
 import dbus.service
 import sys
-import os
-from dbus.mainloop.glib import DBusGMainLoop
-import yaml
 
 DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
+
 
 class DStatusService(dbus.service.Object):
     """
@@ -81,22 +78,3 @@ class DStatusService(dbus.service.Object):
             return json.dumps(self.config[block_name], ensure_ascii=False)
         else:
             return '{}'
-
-
-def start():
-    DBusGMainLoop(set_as_default=True)
-
-    try:
-        with open("{}/.i3-dstatus.conf".format(os.path.expanduser('~'))) as f:
-            config = yaml.safe_load(f)
-    except FileNotFoundError:
-        config = {}
-
-    manager = DStatusService(config)
-
-    sys.stdout.write('{"version":1}\n[\n[]\n')
-    # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
-    sys.stdout.flush()
-
-    main = GLib.MainLoop()
-    main.run()
