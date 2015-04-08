@@ -1,24 +1,13 @@
 #!/usr/bin/env python3
 
 from gi.repository import Gtk, GLib, Gdk
-import json
-import dbus
 import cgi
+from i3dstatus.utils import get_config, make_block
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+config = get_config('clipboard')
 
-truncate_length = 20
-clipboard_format = '<span size="small" font="FontAwesome">\uf0ea</span> %text'
-
-config = json.loads(i3dstatus.get_config('clipboard'))
-
-if 'format' in config:
-    clipboard_format = config['format']
-if 'truncate-length' in config:
-    truncate_length = config['truncate-length']
+clipboard_format = config.get('format', '<span size="small" font="FontAwesome">\uf0ea</span> %text')
+truncate_length = config.get('truncate-length', 20)
 
 clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
@@ -36,25 +25,29 @@ def format_clipboard_text(cb_text):
 
 def on_owner_change(clipboard, event):
     cb_text = clipboard.wait_for_text()
+    print("Clipboard", cb_text)
 
     if not cb_text:
         # no clipboard, so clear the block
-        i3dstatus.show_block({"name": "clipboard", "full_text": ""})
-        return
-
-    i3dstatus.show_block({"name": "clipboard",
-                          "full_text": format_clipboard_text(cb_text),
-                          "markup": "pango"
-                          })
+        block.update({"full_text": ""})
+    else:
+        block.update({
+            "full_text": format_clipboard_text(cb_text),
+            "markup": "pango"
+        })
 
 cb_text = clipboard.wait_for_text()
 
-i3dstatus.show_block({
-                "name": "clipboard",
-                "full_text": format_clipboard_text(cb_text),
-                "markup": "pango"
-            })
+with make_block(
+    'clipboard',
+    {
+        "name": "clipboard",
+        "full_text": format_clipboard_text(cb_text),
+        "markup": "pango"
+    }
+) as bgen:
+    block = bgen()
 
-clipboard.connect('owner-change', on_owner_change)
+    clipboard.connect('owner-change', on_owner_change)
 
-GLib.MainLoop().run()
+    GLib.MainLoop().run()
