@@ -7,7 +7,7 @@ from threading import Timer
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
                            'com.dubstepdish.i3dstatus',
                            '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+                           'com.dubstepdish.i3dstatus.Manager')
 
 disks = {'/': {}}
 

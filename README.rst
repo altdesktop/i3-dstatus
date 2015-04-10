@@ -52,17 +52,10 @@ Usage
 Use i3-dstatus as your status command in your bar block like so:
 
 ::
-
+    
     bar {
         status_command i3-dstatus clock
     }
-
-Pass the path of statusline generator scripts you want to run as
-arguments to i3-dstatus. Passing a relative path will start the script
-from the generators included with i3-dstatus from the generator path.
-Using an absolute path or a ~/ home relative path will call the
-appropriate path. The blocks will appear on i3bar in the order the
-generators were given on the command line.
 
 Configuration
 ~~~~~~~~~~~~~

@@ -1,78 +1,30 @@
-#!/usr/bin/env python3
-
-from gi.repository import GLib
+"""
+Defines and manages d-bus services and objects.
+"""
 import json
 import dbus
 import dbus.service
 import sys
-import os
-import threading
-import subprocess
-from dbus.mainloop.glib import DBusGMainLoop
-import yaml
 
-
-class GeneratorThread(threading.Thread):
-    def __init__(self, generator_path):
-        self.generator_path = generator_path
-        threading.Thread.__init__(self)
-
-    def run(self):
-        subprocess.call(self.generator_path)
+DBUS_SERVICE = 'com.dubstepdish.i3dstatus'
 
 
 class DStatusService(dbus.service.Object):
-    def __init__(self, generators):
-        bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
-                                        bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, bus_name,
-                                     '/com/dubstepdish/i3dstatus')
+    """
+    Manages block objects.
+    """
+    INTERFACE = 'com.dubstepdish.i3dstatus.Manager'
+
+    def __init__(self, config):
+        bus_name = dbus.service.BusName(DBUS_SERVICE, bus=dbus.SessionBus())
+        super().__init__(bus_name, '/com/dubstepdish/i3dstatus')
         self.blocks = []
-        self.generators = generators
         self.config = {"general": {}}
 
-        script_dir = os.path.dirname(__file__)
-
         # cache the config
-        try:
-            f = open("{}/.i3-dstatus.conf".format(os.path.expanduser('~')))
-            self.config = yaml.safe_load(f)
-            f.close()
-        except FileNotFoundError:
-            pass
+        self.config = config
 
-        if 'generators' in self.config['general']:
-            # append the generators in the config to the list of generators
-            for generator in self.config['general']['generators']:
-                if generator not in self.generators:
-                    self.generators.append(generator)
-
-        paths = []
-        # arguments are the names of generators to run
-        for generator in generators:
-            generator_path = ''
-            if os.path.isabs(os.path.expanduser(generator)):
-                generator_path = os.path.expanduser(generator)
-            else:
-                generator_path = os.path.join(script_dir, 'generators',
-                                              generator)
-
-            if os.path.isfile(generator_path):
-                paths.append(generator_path)
-            else:
-                sys.stderr.write(
-                        "Could not find generator: {}".format(generator)
-                        )
-
-        for generator_path in paths:
-            GeneratorThread(generator_path).start()
-
-        if 'order' in self.config['general']:
-            # `order` in the config overrides generator order given on the
-            # command line
-            self.generators = self.config['general']['order']
-
-    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
+    @dbus.service.method(INTERFACE, in_signature='a{sv}')
     def show_block(self, block):
         # apply config options to the block
         block_config = {}
@@ -116,38 +68,13 @@ class DStatusService(dbus.service.Object):
         self.blocks = [b for b in self.blocks if 'full_text' in b and
                        b['full_text']]
 
-        # sort by the order the generators were given
-        def sort_blocks(b):
-            if b['name'] in self.generators:
-                return self.generators.index(b['name']) + 1
-            else:
-                return 0
-
-        self.blocks.sort(key=sort_blocks)
-
         sys.stdout.write(',' + json.dumps(self.blocks, ensure_ascii=False) +
                          '\n')
         sys.stdout.flush()
 
-    @dbus.service.method('com.dubstepdish.i3dstatus',
-                         in_signature='s', out_signature='s')
+    @dbus.service.method(INTERFACE, in_signature='s', out_signature='s')
     def get_config(self, block_name):
         if block_name in self.config:
             return json.dumps(self.config[block_name], ensure_ascii=False)
         else:
             return '{}'
-
-
-def start():
-    DBusGMainLoop(set_as_default=True)
-    DStatusService(sys.argv[1:])
-
-    sys.stdout.write('{"version":1}\n[\n[]\n')
-    # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
-    sys.stdout.flush()
-
-    main = GLib.MainLoop()
-    main.run()
-
-if __name__ == '__main__':
-    start()
