@@ -17,13 +17,13 @@ def find_generator(name):
     """
     # Is this an absolute name?
     fullname = os.path.expanduser(name)
-    if os.path.isabspath(fullname) and os.path.exists(fullname):
+    if os.path.isabs(fullname) and os.path.exists(fullname):
         return fullname
 
     # Is it one of the included generators?
     pkgname = pkg_resources.resource_filename(__name__, 'generators/{}'.format(name))
     if os.path.exists(pkgname):
-        return name
+        return pkgname
 
     # Assume it's on the PATH
     return name
@@ -39,6 +39,7 @@ def start_generator(name):
     Returns a Popen object of the started process.
     """
     exename = find_generator(name)
+    print(name, exename)
     proc = subprocess.Popen(
         [exename],
         stdin=subprocess.PIPE, stdout=sys.stderr)
@@ -46,7 +47,7 @@ def start_generator(name):
     return proc
 
 
-def run_from_config(config):
+def run_from_config(config, extras=()):
     """
     Entry point from startup.
 
@@ -54,4 +55,7 @@ def run_from_config(config):
     """
     if 'general' in config and 'generators' in config['general']:
         for gen in config['general']['generators']:
-            start_generator(gen)
+            if gen not in extras:
+                start_generator(gen)
+    for gen in extras:
+        start_generator(gen)
