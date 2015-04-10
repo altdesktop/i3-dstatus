@@ -18,7 +18,7 @@ def start():
         config = {}
 
     manager = DStatusService(config)
-    run_from_config(config, sys.argv[1:])
+    GLib.idle_add(run_from_config, config, sys.argv[1:])
 
     sys.stdout.write('{"version":1}\n[\n[]\n')
     # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')

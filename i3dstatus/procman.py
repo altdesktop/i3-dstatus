@@ -39,7 +39,6 @@ def start_generator(name):
     Returns a Popen object of the started process.
     """
     exename = find_generator(name)
-    print(name, exename)
     proc = subprocess.Popen(
         [exename],
         stdin=subprocess.PIPE, stdout=sys.stderr)
