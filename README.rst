@@ -52,9 +52,9 @@ Usage
 Use i3-dstatus as your status command in your bar block like so:
 
 ::
-    exec ..../generators/clock
+    
     bar {
-        status_command i3-dstatus
+        status_command i3-dstatus clock
     }
 
 Configuration
