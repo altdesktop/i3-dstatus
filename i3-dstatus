@@ -1,2 +1,2 @@
 #!/bin/sh
-exec python3 -m i3dstatus
+exec python3 -m i3dstatus $*
