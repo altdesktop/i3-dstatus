@@ -8,7 +8,7 @@ import os
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
                            'com.dubstepdish.i3dstatus',
                            '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+                           'com.dubstepdish.i3dstatus.Manager')
 
 default_up = '%iface: %ip'
 default_down = '%iface: <b>down</b>'

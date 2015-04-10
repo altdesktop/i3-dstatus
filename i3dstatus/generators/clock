@@ -6,7 +6,7 @@ import json
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
                            'com.dubstepdish.i3dstatus',
                            '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+                           'com.dubstepdish.i3dstatus.Manager')
 
 time_format = '%m/%d <b>%H:%M</b>'
 

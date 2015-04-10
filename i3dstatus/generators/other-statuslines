@@ -10,7 +10,7 @@ from threading import Thread
 i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
                            'com.dubstepdish.i3dstatus',
                            '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+                           'com.dubstepdish.i3dstatus.Manager')
 
 statuslines = ['i3status']
 

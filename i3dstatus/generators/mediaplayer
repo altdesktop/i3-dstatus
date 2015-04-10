@@ -9,7 +9,7 @@ from gi.repository import Gio, GLib
 def show_block(conn, block):
     bus_name = 'com.dubstepdish.i3dstatus'
     object_path = '/com/dubstepdish/i3dstatus'
-    interface_name = 'com.dubstepdish.i3dstatus'
+    interface_name = 'com.dubstepdish.i3dstatus.Manager'
     method_name = 'show_block'
     # XXX only allows strings - should be a{sv}
     parameters = GLib.Variant('(a{ss})', (block,))
