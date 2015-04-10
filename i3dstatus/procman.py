@@ -50,8 +50,8 @@ def run_from_config(config):
     """
     Entry point from startup.
 
-    Loads a list of generators to start from 'generators'
+    Loads a list of generators to start from general.generators
     """
-    if 'generators' in config:
-        for gen in config['generators']:
+    if 'general' in config and 'generators' in config['general']:
+        for gen in config['general']['generators']:
             start_generator(gen)
