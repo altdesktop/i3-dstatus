@@ -22,7 +22,7 @@ class GeneratorThread(threading.Thread):
 
 
 class DStatusService(dbus.service.Object):
-    def __init__(self, generators):
+    def __init__(self, generators, stream=sys.stdout):
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
                                         bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, bus_name,
@@ -30,6 +30,7 @@ class DStatusService(dbus.service.Object):
         self.blocks = []
         self.generators = generators
         self.config = {"general": {}}
+        self.stream = stream
 
         script_dir = os.path.dirname(__file__)
 
@@ -63,6 +64,10 @@ class DStatusService(dbus.service.Object):
                 sys.stderr.write(
                         "Could not find generator: {}".format(generator)
                         )
+
+        self.stream.write('{"version":1}\n[\n[]\n')
+        # self.stream..write('{"version":1, "click_events":true}\n[\n[]\n')
+        self.stream.flush()
 
         for generator_path in paths:
             GeneratorThread(generator_path).start()
@@ -125,9 +130,9 @@ class DStatusService(dbus.service.Object):
 
         self.blocks.sort(key=sort_blocks)
 
-        sys.stdout.write(',' + json.dumps(self.blocks, ensure_ascii=False) +
-                         '\n')
-        sys.stdout.flush()
+        self.stream.write(',' + json.dumps(self.blocks, ensure_ascii=False) +
+                          '\n')
+        self.stream.flush()
 
     @dbus.service.method('com.dubstepdish.i3dstatus',
                          in_signature='s', out_signature='s')
