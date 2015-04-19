@@ -23,10 +23,12 @@ class GeneratorThread(threading.Thread):
 
 class DStatusService(dbus.service.Object):
     def __init__(self, generators, stream=sys.stdout):
+        DBusGMainLoop(set_as_default=True)
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
                                         bus=dbus.SessionBus())
         dbus.service.Object.__init__(self, bus_name,
                                      '/com/dubstepdish/i3dstatus')
+
         self.blocks = []
         self.generators = generators
         self.config = {"general": {}}
@@ -142,17 +144,13 @@ class DStatusService(dbus.service.Object):
         else:
             return '{}'
 
+    def main(self):
+        GLib.MainLoop().run()
+
 
 def start():
-    DBusGMainLoop(set_as_default=True)
-    DStatusService(sys.argv[1:])
-
-    sys.stdout.write('{"version":1}\n[\n[]\n')
-    # sys.stdout.write('{"version":1, "click_events":true}\n[\n[]\n')
-    sys.stdout.flush()
-
-    main = GLib.MainLoop()
-    main.run()
+    service = DStatusService(sys.argv[1:])
+    service.main()
 
 if __name__ == '__main__':
     start()
