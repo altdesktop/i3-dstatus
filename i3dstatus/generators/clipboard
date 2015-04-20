@@ -24,6 +24,9 @@ clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
 
 
 def format_clipboard_text(cb_text):
+    if not cb_text:
+        return ""
+
     cb_text = cgi.escape(cb_text.replace('\n', ''))
 
     if len(cb_text) > truncate_length:
