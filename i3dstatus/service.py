@@ -10,6 +10,8 @@ import threading
 import subprocess
 from dbus.mainloop.glib import DBusGMainLoop
 import yaml
+import argparse
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 
 class GeneratorThread(threading.Thread):
@@ -31,7 +33,7 @@ class DStatusService(dbus.service.Object):
 
         self.blocks = []
         self.generators = generators
-        self.config = config
+        self.config = config if config else {}
         self.stream = stream
 
         script_dir = os.path.dirname(__file__)
@@ -143,16 +145,60 @@ class DStatusService(dbus.service.Object):
 
 
 def start():
+    description = '''\
+Another great statusline generator for i3wm.\
+    '''
+
+    epilog = '''\
+available generators:
+  clipboard         - show the contents of the clipboard
+  clock             - show the current time
+  disk              - show disk usage statistics
+  ethernet          - show information about a network device
+  focused-window    - show the currently focused window
+  mediaplayer       - show artist/title of the currently playing track
+  other-statuslines - show the output of another statusline
+  scratchpad        - show what windows are in the i3 scratchpad
+
+example usage:
+  i3-dstatus focused-window ethernet clock
+    '''
+
+    parser = ArgumentParser(prog='i3-dstatus',
+                            description=description,
+                            epilog=epilog,
+                            formatter_class=RawDescriptionHelpFormatter)
+
+    parser.add_argument('-c',
+                        metavar='CONFIG',
+                        dest='config',
+                        nargs=1,
+                        help='The location of your i3-dstatus config')
+
+    parser.add_argument('generators',
+                        metavar='Generators',
+                        nargs=argparse.REMAINDER,
+                        help='''Pass a list of generators as arguments to
+                        appear in the statusline. See below for a list of
+                        generators.''')
+
+    args = parser.parse_args()
+
     # load the config
     config = {}
 
     try:
-        with open("{}/.i3-dstatus.conf".format(os.path.expanduser('~'))) as f:
+        config_path = args.config[0] if args.config else '~/.i3-dstatus.conf'
+        with open(os.path.expanduser(config_path)) as f:
             config = yaml.safe_load(f)
     except FileNotFoundError:
-        pass
+        if args.config:
+            message = 'Could not find config at {}\n'.format(args.config[0])
+            parser.exit(status=1, message=message)
+        else:
+            pass
 
-    service = DStatusService(sys.argv[1:], config=config)
+    service = DStatusService(args.generators, config=config)
     service.main()
 
 if __name__ == '__main__':
