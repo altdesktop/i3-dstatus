@@ -5,6 +5,8 @@ import json
 import cgi
 from gi.repository import Gio, GLib
 
+mediaplayer_format = '%artist - %title'
+
 
 def show_block(conn, block):
     bus_name = 'com.dubstepdish.i3dstatus'
@@ -53,9 +55,14 @@ def properties_changed_callback(conn, sender_name, object_path,
         block = {'name': 'mediaplayer', 'markup': 'pango'}
 
         if 'xesam:artist' in metadata and 'xesam:title' in metadata:
-            block['full_text'] = cgi.escape(
-                    '{} - {}'.format(metadata['xesam:artist'][0],
-                                     metadata['xesam:title']))
+            artist = cgi.escape(metadata['xesam:artist'][0])
+            title = cgi.escape(metadata['xesam:title'])
+
+            full_text = mediaplayer_format.replace('%title', title)
+            full_text = full_text.replace('%artist', artist)
+
+            block['full_text'] = full_text
+
         show_block(conn, block)
 
 if __name__ == '__main__':
@@ -63,6 +70,9 @@ if __name__ == '__main__':
     config = get_config('mediaplayer')
     if 'player' in config:
         sender = 'org.mpris.MediaPlayer2.' + config['player']
+
+    if 'format' in config:
+        mediaplayer_format = config['format']
 
     interface_name = 'org.freedesktop.DBus.Properties'
     member = 'PropertiesChanged'
