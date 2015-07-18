@@ -26,8 +26,10 @@ class GeneratorThread(threading.Thread):
 class DStatusService(dbus.service.Object):
     def __init__(self, generators, stream=sys.stdout, config={}):
         DBusGMainLoop(set_as_default=True)
+        bus = dbus.SessionBus()
+
         bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
-                                        bus=dbus.SessionBus())
+                                        bus=bus)
         dbus.service.Object.__init__(self, bus_name,
                                      '/com/dubstepdish/i3dstatus')
 
