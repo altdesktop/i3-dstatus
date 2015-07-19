@@ -12,6 +12,8 @@ from dbus.mainloop.glib import DBusGMainLoop
 import yaml
 import argparse
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import datetime
+import traceback
 
 
 class GeneratorThread(threading.Thread):
@@ -200,8 +202,16 @@ example usage:
         else:
             pass
 
-    service = DStatusService(args.generators, config=config)
-    service.main()
+    try:
+        service = DStatusService(args.generators, config=config)
+        service.main()
+    except Exception as e:
+        with open('/tmp/i3-dstatus-error.log', 'a') as f:
+            f.write("ERROR - " + str(datetime.datetime.now()) + "\n")
+            f.write(traceback.format_exc())
+            f.write('\n')
+
+        sys.exit(1)
 
 if __name__ == '__main__':
     start()
