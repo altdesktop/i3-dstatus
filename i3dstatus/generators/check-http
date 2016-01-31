@@ -19,10 +19,7 @@ up_format = ''
 down_format = '<span color="red">%site is down (status: %status, %reason)</span>'
 interval = 600
 
-sites = [
-    'http://google.com/asjkldfjsd',
-    'http://dubstepdish.com',
-]
+sites = []
 
 block_lock = Lock()
 
