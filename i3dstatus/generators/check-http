@@ -25,11 +25,11 @@ block_lock = Lock()
 
 config = json.loads(i3dstatus.get_config(block_name))
 
-if 'up_format' in config:
-    up_format = config['up_format']
+if 'format-up' in config:
+    up_format = config['format-up']
 
-if 'down_format' in config:
-    down_format = config['down_format']
+if 'format-down' in config:
+    down_format = config['format-down']
 
 if 'interval' in config:
     interval = config['interval']
