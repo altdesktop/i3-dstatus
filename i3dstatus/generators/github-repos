@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+import time
+import dbus
+import json
+import requests
+import atexit
+
+# display aggregate info on your users github repos
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+block_name = 'github-repos'
+format_str = '<span color="yellow">★</span>%stars ?:%issues 👁:%watchers'
+users = [ 'acrisci' ]
+interval = 600
+
+config = json.loads(i3dstatus.get_config(block_name))
+
+if 'users' in config:
+    users = config['users']
+
+if 'format' in config:
+    format_str = config['format']
+
+if 'interval' in config:
+    interval = config['interval']
+
+def show_block(stars, issues, watchers):
+    full_text = format_str.replace('%users', ', '.join(users))
+    full_text = full_text.replace('%stars', str(stars))
+    full_text = full_text.replace('%issues', str(issues))
+    full_text = full_text.replace('%watchers', str(watchers))
+
+    i3dstatus.show_block({
+        "name": block_name,
+        "full_text": full_text,
+        "markup": "pango",
+    })
+
+def clear_block():
+    i3dstatus.show_block({
+        "name": block_name,
+        "full_text": "",
+    })
+
+atexit.register(clear_block)
+
+while True:
+    stars = 0
+    issues = 0
+    watchers = 0
+
+    for user in users:
+        repos = requests.get('https://api.github.com/users/%s/repos' % user).json()
+        for r in repos:
+            stars += r['stargazers_count']
+            issues += r['open_issues_count']
+            watchers += r['watchers_count']
+
+    show_block(stars, issues, watchers)
+
+    time.sleep(interval)
