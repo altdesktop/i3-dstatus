@@ -13,7 +13,7 @@ i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
                            'com.dubstepdish.i3dstatus')
 
 block_name = 'github-repos'
-format_str = '<span color="yellow">★</span>%stars ?:%issues 👁:%watchers'
+format_str = '<span color="yellow">★</span>%stars <small>?</small>%issues <small>👁</small>%watchers'
 users = [ 'acrisci' ]
 interval = 600
 
