@@ -4,6 +4,7 @@ import dbus
 import json
 import requests
 import atexit
+from requests.exceptions import ConnectionError
 
 # display aggregate info on your users github repos
 
@@ -53,13 +54,17 @@ while True:
     issues = 0
     watchers = 0
 
-    for user in users:
-        repos = requests.get('https://api.github.com/users/%s/repos' % user).json()
-        for r in repos:
-            stars += r['stargazers_count']
-            issues += r['open_issues_count']
-            watchers += r['watchers_count']
+    try:
+        for user in users:
+            repos = requests.get('https://api.github.com/users/%s/repos' % user).json()
+            for r in repos:
+                stars += r['stargazers_count']
+                issues += r['open_issues_count']
+                watchers += r['watchers_count']
 
-    show_block(stars, issues, watchers)
+        show_block(stars, issues, watchers)
+    except ConnectionError as e:
+        # oops couldn't connect
+        pass
 
     time.sleep(interval)
