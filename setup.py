@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='i3-dstatus',
-    version='0.0.3',
+    version='0.0.4',
     author='Tony Crisci',
     author_email='tony@dubstepdish.com',
     url='https://github.com/acrisci/i3-dstatus',
