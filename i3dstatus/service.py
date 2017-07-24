@@ -155,6 +155,7 @@ Another great statusline generator for i3wm.\
 
     epilog = '''\
 available generators:
+  battery           - show battery information
   clipboard         - show the contents of the clipboard
   clock             - show the current time
   disk              - show disk usage statistics

@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+
+from gi.repository import GLib
+import dbus
+import dbus.mainloop.glib
+import sys
+import json
+
+i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
+                           'com.dubstepdish.i3dstatus',
+                           '/com/dubstepdish/i3dstatus'),
+                           'com.dubstepdish.i3dstatus')
+
+def get_first_battery_path(system_bus):
+    upower = system_bus.get_object('org.freedesktop.UPower', '/org/freedesktop/UPower')
+    devices = upower.EnumerateDevices(dbus_interface='org.freedesktop.UPower')
+
+    for d in devices:
+        name = d.split('/')[-1]
+        if name.startswith('battery_'):
+            return d
+
+
+def update_status(properties, battery_format, battery_name):
+    full_text = battery_format
+    full_text = full_text.replace('%name', battery_name)
+
+    if 'Percentage' in properties:
+        full_text = full_text.replace('%percentage', str(properties['Percentage']))
+
+    i3dstatus.show_block({
+        "name": "battery",
+        "full_text": full_text,
+        "markup": "pango"
+        })
+
+
+
+def main():
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    system_bus = dbus.SystemBus()
+
+    battery_format = '%name %percentage%'
+    battery_path = ''
+
+    config = json.loads(i3dstatus.get_config('battery'))
+
+    if 'format' in config:
+        battery_format = config['format']
+    if 'name' in config:
+        battery_path = '/org/freedesktop/UPower/devices/battery_' + config['name']
+
+    if not battery_path:
+        battery_path = get_first_battery_path(system_bus)
+
+    if not battery_path:
+        print('could not find a battery')
+        sys.exit(1)
+
+
+    battery_name = battery_path.split('/')[-1][len('battery_'):]
+
+    battery = system_bus.get_object('org.freedesktop.UPower', battery_path)
+
+    battery_properties = dbus.Interface(battery, 'org.freedesktop.DBus.Properties')
+
+    percentage = battery_properties.Get('org.freedesktop.UPower.Device', 'Percentage')
+
+    update_status({'Percentage': percentage}, battery_format, battery_name)
+
+    def signal_handler(iface, properties, _):
+        # TODO handle more properties
+        if 'Percentage' in properties:
+            update_status(properties, battery_format, battery_name)
+
+    battery_properties.connect_to_signal('PropertiesChanged', signal_handler)
+
+    loop = GLib.MainLoop()
+    loop.run()
+
+
+if __name__ == '__main__':
+    main()
