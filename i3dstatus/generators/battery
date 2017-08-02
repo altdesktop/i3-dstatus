@@ -10,7 +10,8 @@ import os
 block = Block(os.path.basename(__file__))
 
 def get_first_battery_path(system_bus):
-    upower = system_bus.get_object('org.freedesktop.UPower', '/org/freedesktop/UPower')
+    upower = system_bus.get_object(
+            'org.freedesktop.UPower', '/org/freedesktop/UPower')
     devices = upower.EnumerateDevices(dbus_interface='org.freedesktop.UPower')
 
     for d in devices:
@@ -41,7 +42,8 @@ def main():
     if 'format' in block.config:
         battery_format = block.config['format']
     if 'name' in block.config:
-        battery_path = '/org/freedesktop/UPower/devices/battery_' + block.config['name']
+        battery_path = '/org/freedesktop/UPower/devices/battery_' \
+                + block.config['name']
 
     if not battery_path:
         battery_path = get_first_battery_path(system_bus)
@@ -55,13 +57,15 @@ def main():
 
     battery = system_bus.get_object('org.freedesktop.UPower', battery_path)
 
-    battery_properties = dbus.Interface(battery, 'org.freedesktop.DBus.Properties')
+    battery_properties = dbus.Interface(battery,
+            'org.freedesktop.DBus.Properties')
 
-    percentage = battery_properties.Get('org.freedesktop.UPower.Device', 'Percentage')
+    percentage = battery_properties.Get('org.freedesktop.UPower.Device',
+            'Percentage')
 
     update_status({'Percentage': percentage}, battery_format, battery_name)
 
-    def signal_handler(iface, properties, _):
+    def signal_handler(_iface, properties, _):
         # TODO handle more properties
         if 'Percentage' in properties:
             update_status(properties, battery_format, battery_name)
