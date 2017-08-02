@@ -4,12 +4,10 @@ from gi.repository import GLib
 import dbus
 import dbus.mainloop.glib
 import sys
-import json
+from i3dstatus.block import Block
+import os
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+block = Block(os.path.basename(__file__))
 
 def get_first_battery_path(system_bus):
     upower = system_bus.get_object('org.freedesktop.UPower', '/org/freedesktop/UPower')
@@ -22,18 +20,15 @@ def get_first_battery_path(system_bus):
 
 
 def update_status(properties, battery_format, battery_name):
-    full_text = battery_format
-    full_text = full_text.replace('%name', battery_name)
+    context = {
+        'name': battery_name,
+        'percentage': '',
+    }
 
     if 'Percentage' in properties:
-        full_text = full_text.replace('%percentage', str(properties['Percentage']))
+        context['percentage'] = properties['Percentage']
 
-    i3dstatus.show_block({
-        "name": "battery",
-        "full_text": full_text,
-        "markup": "pango"
-        })
-
+    block.show(battery_format, markup='pango', context=context)
 
 
 def main():
@@ -43,12 +38,10 @@ def main():
     battery_format = '%name %percentage%'
     battery_path = ''
 
-    config = json.loads(i3dstatus.get_config('battery'))
-
-    if 'format' in config:
-        battery_format = config['format']
-    if 'name' in config:
-        battery_path = '/org/freedesktop/UPower/devices/battery_' + config['name']
+    if 'format' in block.config:
+        battery_format = block.config['format']
+    if 'name' in block.config:
+        battery_path = '/org/freedesktop/UPower/devices/battery_' + block.config['name']
 
     if not battery_path:
         battery_path = get_first_battery_path(system_bus)
