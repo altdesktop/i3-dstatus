@@ -22,7 +22,16 @@ class GeneratorThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        subprocess.call(self.generator_path)
+        # XXX: put i3dstatus in the env so generators can use the library in
+        # development without a system install (is there a better way?)
+        environ = dict(os.environ)
+        pythonpath = os.path.dirname(__file__) + '/..'
+        if 'PYTHONPATH' in environ:
+            pythonpath = environ['PYTHONPATH'] + ':' + pythonpath
+
+        environ['PYTHONPATH'] = pythonpath
+
+        subprocess.call(self.generator_path, env=environ)
 
 
 class DStatusService(dbus.service.Object):
