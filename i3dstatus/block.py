@@ -15,10 +15,21 @@ class Block:
         self.config = json.loads(self.interface.get_config(self.name))
 
 
-    def show(self, full_text, instance=None, markup=None):
+    @staticmethod
+    def expand_template(text, context):
+        if not context:
+            return text
+
+        for key in sorted(context.keys(), key=lambda k: len(k), reverse=True):
+            text = text.replace('%' + key, str(context[key]))
+
+        return text
+
+
+    def show(self, full_text, instance=None, markup=None, context=None):
         block = {
             'name': self.name,
-            'full_text': full_text,
+            'full_text': Block.expand_template(full_text, context),
         }
 
         if markup is True:
