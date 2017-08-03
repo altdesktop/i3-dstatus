@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-import dbus
-import json
 import os
 from threading import Timer
+from i3dstatus.block import Block
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+block = Block(os.path.basename(__file__))
 
 disks = {'/': {}}
 
-config = json.loads(i3dstatus.get_config('disk'))
-
-if len(config):
-    disks = config
+if block.config:
+    disks = block.config
 
 MAX_EXPONENT = 4
 
@@ -64,29 +58,20 @@ def on_tick():
 
         percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
 
-        format_str = format_str.replace(
-                '%free', format_bytes(bytes_free, prefix))
-        format_str = format_str.replace('%used',
-                                        format_bytes(bytes_used, prefix))
-        format_str = format_str.replace('%total',
-                                        format_bytes(bytes_total, prefix))
-        format_str = format_str.replace('%avail',
-                                        format_bytes(bytes_avail, prefix))
-        format_str = format_str.replace('%percentage_free',
-                                        str(percentage_free) + '%')
-        format_str = format_str.replace('%percentage_used_of_avail',
-                                        str(percentage_used_of_avail) + '%')
-        format_str = format_str.replace('%percentage_used',
-                                        str(percentage_used) + '%')
-        format_str = format_str.replace('%percentage_avail',
-                                        str(percentage_avail) + '%')
+        context = {
+            'free': format_bytes(bytes_free, prefix),
+            'used': format_bytes(bytes_used, prefix),
+            'total': format_bytes(bytes_total, prefix),
+            'avail': format_bytes(bytes_avail, prefix) + '%',
+            'percentage_free': str(percentage_free) + '%',
+            'percentage_used_of_avail': str(percentage_used_of_avail) + '%',
+            'percentage_used': str(percentage_used) + '%',
+            'percentage_avail': str(percentage_avail) + '%',
+        }
 
-        i3dstatus.show_block({
-            "name": "disk",
-            "instance": path,
-            "full_text": format_str,
-            "markup": "pango"
-            })
+        block.show(format_str,
+                context=context,
+                markup='pango')
 
     Timer(10.0, on_tick).start()
 
