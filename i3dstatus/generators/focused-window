@@ -1,21 +1,18 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 import i3ipc
-import dbus
-import json
 import cgi
+import os
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                          'com.dubstepdish.i3dstatus',
-                          '/com/dubstepdish/i3dstatus'),
-                          'com.dubstepdish.i3dstatus')
+from i3dstatus.block import Block
 
-config = json.loads(i3dstatus.get_config('focused-window'))
+block = Block(os.path.basename(__file__))
 
 truncate_length = 100
 
-if 'truncate-length' in config:
-    truncate_length = config['truncate-length']
+if 'truncate-length' in block.config:
+    truncate_length = block.config['truncate-length']
 
 
 def process_title(name):
@@ -28,23 +25,14 @@ def process_title(name):
     return cgi.escape(name)
 
 
-def on_focus_title_change(i3, e):
+def on_focus_title_change(_i3, e):
     if e.container.focused:
-        full_text = process_title(e.container.name)
-        i3dstatus.show_block({
-            "name": "focused-window",
-            "full_text": full_text,
-            "markup": "pango"
-            })
+        block.show(process_title(e.container.name), markup='pango')
 
 i3 = i3ipc.Connection()
 i3.on('window::focus', on_focus_title_change)
 i3.on('window::title', on_focus_title_change)
 
-i3dstatus.show_block({
-            "name": "focused-window",
-            "full_text": process_title(i3.get_tree().find_focused().name),
-            "markup": "pango"
-            })
+block.show(process_title(i3.get_tree().find_focused().name), markup='pango')
 
 i3.main()
