@@ -4,16 +4,14 @@ import time
 import json
 import netifaces
 import os
+from i3dstatus.block import Block
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+block = Block(os.path.basename(__file__))
 
 default_up = '%iface: %ip'
 default_down = '%iface: <b>down</b>'
 
-config = json.loads(i3dstatus.get_config('ethernet'))
+config = dict(block.config)
 
 if not config:
     config = {}
@@ -22,11 +20,9 @@ if not config:
         if iface.startswith('lo'):
             # loopback device
             continue
-        if os.path.isdir('/sys/class/net/{}/wireless'.format(iface)):
-            # wireless device
-            continue
 
         config[iface] = {'format-up': default_up, 'format-down': default_down}
+        break
 
 while True:
     for iface, opts in config.items():
@@ -38,24 +34,19 @@ while True:
             if 'addr' in addr[netifaces.AF_INET][0]:
                 ip = addr[netifaces.AF_INET][0]['addr']
 
-            full_text = opts['format-up'].replace('%ip', ip)
-            full_text = full_text.replace('%iface', iface)
-            i3dstatus.show_block({
-                'name': 'ethernet',
-                'instance': iface,
-                'full_text': full_text,
-                'markup': 'pango'
-                })
+            context = {
+                'ip': ip,
+                'iface': iface,
+            }
 
+            block.show(opts['format-up'], instance=iface,
+                    context=context, markup='pango')
         else:
             # device is down
-            full_text = opts['format-down']
-            full_text = full_text.replace('%iface', iface)
-            i3dstatus.show_block({
-                'name': 'ethernet',
-                'instance': iface,
-                'full_text': full_text,
-                'markup': 'pango'
-                })
+            context = {
+                'iface': iface,
+            }
+            block.show(opts['format-down'], instance=iface,
+                    context=context, markup='pango')
 
-    time.sleep(3)
+    time.sleep(5)
