@@ -2,25 +2,22 @@
 
 import ijson.backends.yajl2 as ijson
 from subprocess import Popen, PIPE
-import json
 import sys
-import dbus
 from threading import Thread
+import json
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+import os
+from i3dstatus.block import Block
+
+block = Block(os.path.basename(__file__))
 
 statuslines = ['i3status']
 
-config = i3dstatus.get_config('other-statuslines')
-
-if 'statuslines' in config:
-    if isinstance(config, str):
-        statuslines = [config]
-    if isinstance(config, list):
-        statuslines = config
+if 'statuslines' in block.config:
+    if isinstance(block.config, str):
+        statuslines = [block.config]
+    if isinstance(block.config, list):
+        statuslines = block.config
 
 
 class OtherStatusline(Thread):
@@ -38,20 +35,20 @@ class OtherStatusline(Thread):
 
             parser = ijson.parse(proc.stdout, buf_size=1)
 
-            block = {}
+            other_block = {}
             last_key = ''
 
-            for prefix, event, value in parser:
+            for _prefix, event, value in parser:
                 if event == 'start_map':
-                    block = {}
+                    other_block = {}
                 elif event == 'map_key':
                     last_key = value
                 elif event in ['null', 'boolean', 'string', 'number']:
-                    block[last_key] = value
+                    other_block[last_key] = value
                 elif event == 'end_map':
                     # XXX: we probably need a method to show more than one
                     # block
-                    i3dstatus.show_block(block)
+                    block.show(block)
 
 for statusline in statuslines:
     OtherStatusline(statusline).start()
