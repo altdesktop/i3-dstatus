@@ -4,56 +4,46 @@ import dbus
 import json
 import atexit
 from urllib.request import urlopen
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from threading import Thread
 from threading import Lock
+from i3dstatus.block import Block
+import os
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+block = Block(os.path.basename(__file__))
 
-block_name = 'check-http'
-#up_format = '<span color="green">%site is up (status: %status)</span>'
 up_format = ''
-down_format = '<span color="red">%site is down (status: %status, %reason)</span>'
+down_format = \
+        '<span color="red">%site is down (status: %status, %reason)</span>'
 interval = 600
 
 sites = []
 
 block_lock = Lock()
 
-config = json.loads(i3dstatus.get_config(block_name))
+if 'format-up' in block.config:
+    up_format = block.config['format-up']
 
-if 'format-up' in config:
-    up_format = config['format-up']
+if 'format-down' in block.config:
+    down_format = block.config['format-down']
 
-if 'format-down' in config:
-    down_format = config['format-down']
+if 'interval' in block.config:
+    interval = block.config['interval']
 
-if 'interval' in config:
-    interval = config['interval']
-
-if 'sites' in config:
-    sites = config['sites']
+if 'sites' in block.config:
+    sites = block.config['sites']
 
 def show_block(url, status, reason, is_up):
-    global block_lock
     format_str = up_format if is_up else down_format
-    full_text = format_str.replace('%site', url)
-    full_text = full_text.replace('%status', str(status))
-    full_text = full_text.replace('%reason', reason)
-
-    print(full_text)
-
+    context = {
+        'site': url,
+        'status': str(status),
+        'reason': reason,
+    }
     block_lock.acquire()
     try:
-        i3dstatus.show_block({
-            "name": block_name,
-            "instance": url,
-            "full_text": full_text,
-            "markup": "pango"
-        })
+        block.show(format_str, instance=url,
+                   markup="pango", context=context)
     finally:
         block_lock.release()
 
@@ -63,13 +53,16 @@ class HttpChecker(Thread):
         Thread.__init__(self)
 
     def run(self):
-        status = None
+        status = 'n/a'
         reason = ''
         is_up = True
         try:
             resp = urlopen(self.url)
             status = resp.status
             reason = resp.reason
+        except URLError as e:
+            reason = e.reason
+            is_up = False
         except HTTPError as e:
             status = e.status
             reason = e.reason
@@ -81,18 +74,14 @@ def clear_blocks():
     for url in sites:
         block_lock.acquire()
         try:
-            i3dstatus.show_block({
-                "name": block_name,
-                "instance": url,
-                "full_text": "",
-            })
+            block.clear(instance=url)
         finally:
             block_lock.release()
 
 atexit.register(clear_blocks)
 
 while True:
-    for url in sites:
-        HttpChecker(url).start()
+    for site in sites:
+        HttpChecker(site).start()
 
     time.sleep(interval)

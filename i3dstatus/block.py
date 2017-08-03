@@ -26,6 +26,17 @@ class Block:
         return text
 
 
+    def clear(self, instance=None):
+        block = {
+            'name': self.name,
+            'full_text': '',
+        }
+        if instance:
+            block['instance'] = instance
+
+        self.interface.show_block(block)
+
+
     def show(self, full_text, instance=None, markup=None, context=None):
         block = {
             'name': self.name,
