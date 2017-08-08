@@ -14,7 +14,12 @@ import argparse
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import datetime
 import traceback
+from enum import Enum
 
+class LogLevel(Enum):
+    DEBUG = 1
+    INFO = 2
+    ERROR = 3
 
 class GeneratorThread(threading.Thread):
     def __init__(self, generator_path):
@@ -36,6 +41,7 @@ class GeneratorThread(threading.Thread):
 
 class DStatusService(dbus.service.Object):
     def __init__(self, generators, stream=sys.stdout, config={}):
+        #stream = open('/dev/null', 'w')
         DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus()
 
@@ -153,6 +159,13 @@ class DStatusService(dbus.service.Object):
         else:
             return '{}'
 
+    '''
+    @dbus.service.method('com.dubstepdish.i3dstatus',
+                         in_signature='iss')
+    def generator_log(self, log_level, block_name, message):
+        print('got log message: log_level = {}, block_name = {}, message = {}'.format(log_level, block_name, message), file=sys.stderr)
+
+    '''
     def main(self):
         GLib.MainLoop().run()
 
@@ -220,8 +233,7 @@ example usage:
             f.write("ERROR - " + str(datetime.datetime.now()) + "\n")
             f.write(traceback.format_exc())
             f.write('\n')
-
-        sys.exit(1)
+        raise e
 
 if __name__ == '__main__':
     start()

@@ -14,6 +14,17 @@ class Block:
             'com.dubstepdish.i3dstatus')
         self.config = json.loads(self.interface.get_config(self.name))
 
+        self.notifications = None
+
+        try:
+            self.notifications = dbus.Interface(self.bus.get_object(
+                'org.freedesktop.Notifications',
+                '/org/freedesktop/Notifications'),
+                'org.freedesktop.Notifications')
+        except dbus.DBusException:
+            # notifications are unavailable
+            pass
+
 
     @staticmethod
     def expand_template(text, context):
@@ -51,3 +62,10 @@ class Block:
             block['instance'] = instance
 
         self.interface.show_block(block)
+
+
+    def notify(self, message):
+        if self.notifications:
+            # https://developer.gnome.org/notification-spec/
+            self.notifications.Notify('i3dstatus', 0, '', '',
+                                      message, [], [], -1)

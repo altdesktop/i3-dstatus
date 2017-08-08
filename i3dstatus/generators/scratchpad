@@ -1,23 +1,18 @@
 #!/usr/bin/env python3
 
 import i3ipc
-import dbus
-import json
 import cgi
+import os
+from i3dstatus.block import Block
 
-i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                           'com.dubstepdish.i3dstatus',
-                           '/com/dubstepdish/i3dstatus'),
-                           'com.dubstepdish.i3dstatus')
+block = Block(os.path.basename(__file__))
 
 i3 = i3ipc.Connection()
 
 scratchpad_format = 'scratchpad: <b>%classes</b>'
 
-config = json.loads(i3dstatus.get_config('scratchpad'))
-
-if 'format' in config:
-    scratchpad_format = config['format']
+if 'format' in block.config:
+    scratchpad_format = block.config['format']
 
 last_full_text = ''
 
