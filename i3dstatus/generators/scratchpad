@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 
-import i3ipc
 import cgi
 import os
 from i3dstatus.block import Block
 
 block = Block(os.path.basename(__file__))
+
+try:
+    import i3ipc
+except ImportError as e:
+    block.error('could not find python3 module i3ipc')
+    raise e
 
 i3 = i3ipc.Connection()
 

@@ -2,16 +2,19 @@
 # -*- coding: utf-8 -*-
 
 import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, Gdk
-import json
-import dbus
 import cgi
 import os
 
 from i3dstatus.block import Block
 
 block = Block(os.path.basename(__file__))
+
+try:
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk, GLib, Gdk
+except ImportError as e:
+    block.error('could not import python3 gobject Gtk library')
+    raise e
 
 truncate_length = 20
 clipboard_format = '%text'

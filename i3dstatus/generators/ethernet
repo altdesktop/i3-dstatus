@@ -2,11 +2,16 @@
 import dbus
 import time
 import json
-import netifaces
 import os
 from i3dstatus.block import Block
 
 block = Block(os.path.basename(__file__))
+
+try:
+    import netifaces
+except ImportError e:
+    block.error('could not import python3 module "netifaces"')
+    raise e
 
 default_up = '%iface: %ip'
 default_down = '%iface: <b>down</b>'

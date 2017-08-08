@@ -49,13 +49,17 @@ def main():
         battery_path = get_first_battery_path(system_bus)
 
     if not battery_path:
-        print('could not find a battery')
+        # TODO log
         sys.exit(1)
 
 
     battery_name = battery_path.split('/')[-1][len('battery_'):]
 
-    battery = system_bus.get_object('org.freedesktop.UPower', battery_path)
+    try:
+        battery = system_bus.get_object('org.freedesktop.UPowers', battery_path)
+    except dbus.DBusException as e:
+        block.error('could not find upower dbus interface')
+        raise e
 
     battery_properties = dbus.Interface(battery,
             'org.freedesktop.DBus.Properties')

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import time
-import dbus
-import json
 import atexit
 from urllib.request import urlopen
 from urllib.error import HTTPError, URLError

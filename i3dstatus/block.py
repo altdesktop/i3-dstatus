@@ -67,5 +67,12 @@ class Block:
     def notify(self, message):
         if self.notifications:
             # https://developer.gnome.org/notification-spec/
+            message = 'i3-dstatus [{generator}]: {msg}'.format(
+                    generator=self.name, msg=message)
             self.notifications.Notify('i3dstatus', 0, '', '',
                                       message, [], [], -1)
+
+
+    def error(self, message):
+        # TODO error log
+        self.notify(message)

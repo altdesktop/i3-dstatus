@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# TODO rewrite me with python dbus
+
 import dbus
 import json
 import cgi

@@ -30,6 +30,13 @@ def format_bytes(disk_bytes, prefix):
                                          prefix['symbols'][exponent])
 
 
+# sanity check
+for path in disks.keys():
+    if not os.path.exists(path):
+        block.error('file not found: {}'.format(path))
+        sys.exit(1)
+
+
 def on_tick():
     for path, options in disks.items():
         vfs = os.statvfs(path)
