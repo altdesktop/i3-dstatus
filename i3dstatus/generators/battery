@@ -56,7 +56,7 @@ def main():
     battery_name = battery_path.split('/')[-1][len('battery_'):]
 
     try:
-        battery = system_bus.get_object('org.freedesktop.UPowers', battery_path)
+        battery = system_bus.get_object('org.freedesktop.UPower', battery_path)
     except dbus.DBusException as e:
         block.error('could not find upower dbus interface')
         raise e

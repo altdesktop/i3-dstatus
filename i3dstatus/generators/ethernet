@@ -9,7 +9,7 @@ block = Block(os.path.basename(__file__))
 
 try:
     import netifaces
-except ImportError e:
+except e as ImportError:
     block.error('could not import python3 module "netifaces"')
     raise e
 
