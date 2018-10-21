@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+from i3dstatus.block import Block
+from shutil import which
+import os
+import sys
+import subprocess
+from subprocess import Popen, PIPE
+
+block = Block(os.path.basename(__file__))
+
+player_format = '{{artist}} - {{title}} {{duration(position)}}|{{duration(mpris:length)}}'
+playerctl_path = which('playerctl')
+
+if 'format' in block.config:
+    player_format = block.config['format']
+
+if 'path' in block.config:
+    playerctl_path = block.config['path']
+
+if not playerctl_path:
+    print('could not find playerctl in the path')
+    sys.exit(1)
+
+if not os.path.exists(playerctl_path):
+    print('could not find playerctl path at {}'.format(playerctl_path))
+    sys.exit(1)
+
+with Popen([playerctl_path, 'metadata', '--format', player_format, '--follow'], stdout=PIPE) as p:
+    for line in p.stdout:
+        line = str.strip(line.decode('utf8'))
+        block.show(line)
