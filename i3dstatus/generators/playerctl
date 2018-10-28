@@ -19,11 +19,11 @@ if 'path' in block.config:
     playerctl_path = block.config['path']
 
 if not playerctl_path:
-    print('could not find playerctl in the path')
+    block.error('could not find playerctl in the path')
     sys.exit(1)
 
 if not os.path.exists(playerctl_path):
-    print('could not find playerctl path at {}'.format(playerctl_path))
+    block.error('could not find playerctl path at {}'.format(playerctl_path))
     sys.exit(1)
 
 with Popen([playerctl_path, 'metadata', '--format', player_format, '--follow'], stdout=PIPE) as p:

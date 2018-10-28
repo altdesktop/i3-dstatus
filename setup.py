@@ -10,7 +10,7 @@ setup(
     description='The ultimate DIY statusline generator for i3',
     long_description=open('README.rst').read(),
 
-    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'ijson', 'requests'],
+    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'ijson', 'requests', 'vext', 'vext.gi'],
 
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -21,6 +21,12 @@ setup(
     package_data={'i3dstatus': ['generators/*']},
 
     scripts=['i3-dstatus'],
+
+    entry_points={
+        'console_scripts': [
+            'i3-dstatus = i3dstatus.__main__:main'
+            ]
+        },
 
     packages=find_packages(),
 )

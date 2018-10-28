@@ -40,7 +40,7 @@ class OtherStatusline(Thread):
                 raise e
 
             if 'version' not in header or header['version'] != 1:
-                err = 'invalid status header for {}'.format(self.statusline_path))
+                err = 'invalid status header for {}'.format(self.statusline_path)
                 block.error(err)
                 return
 

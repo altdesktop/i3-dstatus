@@ -159,13 +159,11 @@ class DStatusService(dbus.service.Object):
         else:
             return '{}'
 
-    '''
     @dbus.service.method('com.dubstepdish.i3dstatus',
                          in_signature='iss')
     def generator_log(self, log_level, block_name, message):
         print('got log message: log_level = {}, block_name = {}, message = {}'.format(log_level, block_name, message), file=sys.stderr)
 
-    '''
     def main(self):
         GLib.MainLoop().run()
 
