@@ -47,12 +47,19 @@ def main():
 
         try:
             for user in users:
-                url = 'https://api.github.com/users/%s/repos' % user
-                repos = requests.get(url).json()
-                for r in repos:
-                    stars += r['stargazers_count']
-                    issues += r['open_issues_count']
-                    watchers += r['watchers_count']
+                page = 1
+                while True:
+                    url = 'https://api.github.com/users/%s/repos' % user
+                    repos = requests.get(url, params={'page':page}).json()
+                    page += 1
+
+                    if not repos:
+                        break
+
+                    for r in repos:
+                        stars += r['stargazers_count']
+                        issues += r['open_issues_count']
+                        watchers += r['watchers_count']
 
             show_block(stars, issues, watchers)
         except ConnectionError:
