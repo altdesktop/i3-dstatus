@@ -15,7 +15,7 @@ block = Block(os.path.basename(__file__))
 
 block_name = 'github-repos'
 format_str = '<span color="yellow">★</span>%stars <small>?</small>%issues'
-users = [ 'acrisci' ]
+users = ['acrisci']
 interval = 600
 
 if 'users' in block.config:
@@ -27,6 +27,7 @@ if 'format' in block.config:
 if 'interval' in block.config:
     interval = block.config['interval']
 
+
 def show_block(stars, issues, watchers):
     context = {
         'users': ', '.join(users),
@@ -37,7 +38,9 @@ def show_block(stars, issues, watchers):
 
     block.show(format_str, context=context, markup='pango')
 
+
 atexit.register(block.clear)
+
 
 def main():
     while True:
@@ -50,7 +53,7 @@ def main():
                 page = 1
                 while True:
                     url = 'https://api.github.com/users/%s/repos' % user
-                    repos = requests.get(url, params={'page':page}).json()
+                    repos = requests.get(url, params={'page': page}).json()
                     page += 1
 
                     if not repos:
@@ -67,6 +70,7 @@ def main():
             pass
 
         time.sleep(interval)
+
 
 if __name__ == '__main__':
     main()

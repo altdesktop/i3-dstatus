@@ -16,32 +16,31 @@ def show_block(conn, block):
     interface_name = 'com.dubstepdish.i3dstatus'
     method_name = 'show_block'
     # XXX only allows strings - should be a{sv}
-    parameters = GLib.Variant('(a{ss})', (block,))
+    parameters = GLib.Variant('(a{ss})', (block, ))
     reply_type = None
     flags = 0
     timeout_msec = -1
     cancellable = None
     callback = None
     user_data = None
-    conn.call(bus_name, object_path, interface_name, method_name,
-              parameters, reply_type, flags, timeout_msec, cancellable,
-              callback, user_data)
+    conn.call(bus_name, object_path, interface_name, method_name, parameters,
+              reply_type, flags, timeout_msec, cancellable, callback,
+              user_data)
 
 
 def get_config(conn):
     # XXX: I was trying to do this purely with GIO as a reference, but it seems
     # not to support a lot of the things we need, so I'll mix the apis for now
     # and rewrite later.
-    i3dstatus = dbus.Interface(dbus.SessionBus().get_object(
-                               'com.dubstepdish.i3dstatus',
-                               '/com/dubstepdish/i3dstatus'),
-                               'com.dubstepdish.i3dstatus')
+    i3dstatus = dbus.Interface(
+        dbus.SessionBus().get_object('com.dubstepdish.i3dstatus',
+                                     '/com/dubstepdish/i3dstatus'),
+        'com.dubstepdish.i3dstatus')
     return json.loads(i3dstatus.get_config('mediaplayer'))
 
 
-def properties_changed_callback(conn, sender_name, object_path,
-                                interface_name, signal_name, parameters,
-                                user_data, arg8):
+def properties_changed_callback(conn, sender_name, object_path, interface_name,
+                                signal_name, parameters, user_data, arg8):
     """
     Called when the player properties change, such as metadata or playback
     status
@@ -66,6 +65,7 @@ def properties_changed_callback(conn, sender_name, object_path,
             block['full_text'] = full_text
 
         show_block(conn, block)
+
 
 if __name__ == '__main__':
     sender = None

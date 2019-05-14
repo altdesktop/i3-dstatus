@@ -16,10 +16,12 @@ import datetime
 import traceback
 from enum import Enum
 
+
 class LogLevel(Enum):
     DEBUG = 1
     INFO = 2
     ERROR = 3
+
 
 class GeneratorThread(threading.Thread):
     def __init__(self, generator_path):
@@ -41,12 +43,10 @@ class GeneratorThread(threading.Thread):
 
 class DStatusService(dbus.service.Object):
     def __init__(self, generators, stream=sys.stdout, config={}):
-        #stream = open('/dev/null', 'w')
         DBusGMainLoop(set_as_default=True)
         bus = dbus.SessionBus()
 
-        bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus',
-                                        bus=bus)
+        bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus', bus=bus)
         dbus.service.Object.__init__(self, bus_name,
                                      '/com/dubstepdish/i3dstatus')
 
@@ -78,8 +78,7 @@ class DStatusService(dbus.service.Object):
                 paths.append(generator_path)
             else:
                 sys.stderr.write(
-                        "Could not find generator: {}".format(generator)
-                        )
+                    "Could not find generator: {}".format(generator))
 
         self.stream.write('{"version":1}\n[\n[]\n')
         # self.stream..write('{"version":1, "click_events":true}\n[\n[]\n')
@@ -106,9 +105,11 @@ class DStatusService(dbus.service.Object):
             else:
                 block_config = self.config[block['name']]
 
-        for i3bar_key in ['color', 'min_width', 'min-width' 'align',
-                          'separator', 'separator_block_width',
-                          'separator-block-width']:
+        for i3bar_key in [
+                'color', 'min_width', 'min-width'
+                'align', 'separator', 'separator_block_width',
+                'separator-block-width'
+        ]:
             if i3bar_key.replace('-', '_') in block:
                 # if given in the block, it overrides the config
                 continue
@@ -135,8 +136,9 @@ class DStatusService(dbus.service.Object):
             self.blocks.append(block)
 
         # filter out blocks with no 'full_text' member
-        self.blocks = [b for b in self.blocks if 'full_text' in b and
-                       b['full_text']]
+        self.blocks = [
+            b for b in self.blocks if 'full_text' in b and b['full_text']
+        ]
 
         # sort by the order the generators were given
         def sort_blocks(b):
@@ -152,17 +154,19 @@ class DStatusService(dbus.service.Object):
         self.stream.flush()
 
     @dbus.service.method('com.dubstepdish.i3dstatus',
-                         in_signature='s', out_signature='s')
+                         in_signature='s',
+                         out_signature='s')
     def get_config(self, block_name):
         if block_name in self.config:
             return json.dumps(self.config[block_name], ensure_ascii=False)
         else:
             return '{}'
 
-    @dbus.service.method('com.dubstepdish.i3dstatus',
-                         in_signature='iss')
+    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='iss')
     def generator_log(self, log_level, block_name, message):
-        print('got log message: log_level = {}, block_name = {}, message = {}'.format(log_level, block_name, message), file=sys.stderr)
+        print('got log message: log_level = {}, block_name = {}, message = {}'.
+              format(log_level, block_name, message),
+              file=sys.stderr)
 
     def main(self):
         GLib.MainLoop().run()
@@ -232,6 +236,7 @@ example usage:
             f.write(traceback.format_exc())
             f.write('\n')
         raise e
+
 
 if __name__ == '__main__':
     start()

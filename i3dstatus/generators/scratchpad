@@ -41,8 +41,7 @@ def show_block():
             else:
                 classes.append(window_class)
 
-        full_text = scratchpad_format.replace('%classes',
-                                              ', '.join(classes))
+        full_text = scratchpad_format.replace('%classes', ', '.join(classes))
         if has_urgent:
             full_text = full_text.replace('%count',
                                           urgent_fmt.format(len(scratchpad)))
@@ -62,6 +61,7 @@ def on_move(i3, e):
 
 def on_urgent(i3, e):
     show_block()
+
 
 show_block()
 

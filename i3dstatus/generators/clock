@@ -17,7 +17,8 @@ while True:
     time_string = time.strftime(time_format)
     if time_string != last_time:
         last_time = time_string
-        block.show(time.strftime(time_format),
+        block.show(
+            time.strftime(time_format),
             markup='pango',
         )
     time.sleep(1)

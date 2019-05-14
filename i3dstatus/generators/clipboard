@@ -45,21 +45,18 @@ def on_owner_change(clipboard, _event):
         block.clear()
         return
 
-    context = { 'text': format_clipboard_text(cb) }
+    context = {'text': format_clipboard_text(cb)}
 
-    block.show(clipboard_format,
-               context=context,
-               markup='pango')
+    block.show(clipboard_format, context=context, markup='pango')
+
 
 def main():
     clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
     cb_text = clipboard.wait_for_text()
 
-    context = { 'text': format_clipboard_text(cb_text) }
+    context = {'text': format_clipboard_text(cb_text)}
 
-    block.show(clipboard_format,
-               context=context,
-               markup='pango')
+    block.show(clipboard_format, context=context, markup='pango')
 
     clipboard.connect('owner-change', on_owner_change)
 

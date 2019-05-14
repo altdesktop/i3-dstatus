@@ -9,9 +9,10 @@ import os
 
 block = Block(os.path.basename(__file__))
 
+
 def get_first_battery_path(system_bus):
-    upower = system_bus.get_object(
-            'org.freedesktop.UPower', '/org/freedesktop/UPower')
+    upower = system_bus.get_object('org.freedesktop.UPower',
+                                   '/org/freedesktop/UPower')
     devices = upower.EnumerateDevices(dbus_interface='org.freedesktop.UPower')
 
     for d in devices:
@@ -52,7 +53,6 @@ def main():
         # TODO log
         sys.exit(1)
 
-
     battery_name = battery_path.split('/')[-1][len('battery_'):]
 
     try:
@@ -62,10 +62,10 @@ def main():
         raise e
 
     battery_properties = dbus.Interface(battery,
-            'org.freedesktop.DBus.Properties')
+                                        'org.freedesktop.DBus.Properties')
 
     percentage = battery_properties.Get('org.freedesktop.UPower.Device',
-            'Percentage')
+                                        'Percentage')
 
     update_status({'Percentage': percentage}, battery_format, battery_name)
 

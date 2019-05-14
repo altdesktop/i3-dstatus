@@ -13,9 +13,18 @@ if block.config:
 MAX_EXPONENT = 4
 
 prefixes = {
-    'binary': {'symbols': ['B', 'KiB', 'MiB', 'GiB', 'TiB'], 'base': 1024},
-    'decimal': {'symbols': ['B', 'kB', 'MB', 'GB', 'TB'], 'base': 1000},
-    'custom': {'symbols': ['B', 'KB', 'MB', 'GB', 'TB'], 'base': 1024}
+    'binary': {
+        'symbols': ['B', 'KiB', 'MiB', 'GiB', 'TiB'],
+        'base': 1024
+    },
+    'decimal': {
+        'symbols': ['B', 'kB', 'MB', 'GB', 'TB'],
+        'base': 1000
+    },
+    'custom': {
+        'symbols': ['B', 'KB', 'MB', 'GB', 'TB'],
+        'base': 1024
+    }
 }
 
 
@@ -58,10 +67,10 @@ def on_tick():
         percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
 
         percentage_used_of_avail = round(
-                100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
+            100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
 
         percentage_used = round(
-                100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+            100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
 
         percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
 
@@ -76,10 +85,9 @@ def on_tick():
             'percentage_avail': str(percentage_avail) + '%',
         }
 
-        block.show(format_str,
-                context=context,
-                markup='pango')
+        block.show(format_str, context=context, markup='pango')
 
     Timer(10.0, on_tick).start()
+
 
 on_tick()

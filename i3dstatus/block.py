@@ -1,30 +1,28 @@
 import json
 import dbus
 import dbus.mainloop.glib
-from gi.repository import GLib
+
 
 class Block:
-
     def __init__(self, name):
         self.name = name
         self.bus = dbus.SessionBus()
-        self.interface = dbus.Interface(self.bus.get_object(
-            'com.dubstepdish.i3dstatus',
-            '/com/dubstepdish/i3dstatus'),
+        self.interface = dbus.Interface(
+            self.bus.get_object('com.dubstepdish.i3dstatus',
+                                '/com/dubstepdish/i3dstatus'),
             'com.dubstepdish.i3dstatus')
         self.config = json.loads(self.interface.get_config(self.name))
 
         self.notifications = None
 
         try:
-            self.notifications = dbus.Interface(self.bus.get_object(
-                'org.freedesktop.Notifications',
-                '/org/freedesktop/Notifications'),
+            self.notifications = dbus.Interface(
+                self.bus.get_object('org.freedesktop.Notifications',
+                                    '/org/freedesktop/Notifications'),
                 'org.freedesktop.Notifications')
         except dbus.DBusException:
             # notifications are unavailable
             pass
-
 
     @staticmethod
     def expand_template(text, context):
@@ -36,7 +34,6 @@ class Block:
 
         return text
 
-
     def clear(self, instance=None):
         block = {
             'name': self.name,
@@ -46,7 +43,6 @@ class Block:
             block['instance'] = instance
 
         self.interface.show_block(block)
-
 
     def show(self, full_text, instance=None, markup=None, context=None):
         block = {
@@ -63,15 +59,13 @@ class Block:
 
         self.interface.show_block(block)
 
-
     def notify(self, message):
         if self.notifications:
             # https://developer.gnome.org/notification-spec/
             message = 'i3-dstatus [{generator}]: {msg}'.format(
-                    generator=self.name, msg=message)
-            self.notifications.Notify('i3dstatus', 0, '', '',
-                                      message, [], [], -1)
-
+                generator=self.name, msg=message)
+            self.notifications.Notify('i3dstatus', 0, '', '', message, [], [],
+                                      -1)
 
     def error(self, message):
         # TODO error log

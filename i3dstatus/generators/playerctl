@@ -26,7 +26,8 @@ if not os.path.exists(playerctl_path):
     block.error('could not find playerctl path at {}'.format(playerctl_path))
     sys.exit(1)
 
-with Popen([playerctl_path, 'metadata', '--format', player_format, '--follow'], stdout=PIPE) as p:
+with Popen([playerctl_path, 'metadata', '--format', player_format, '--follow'],
+           stdout=PIPE) as p:
     for line in p.stdout:
         line = str.strip(line.decode('utf8'))
         block.show(line)

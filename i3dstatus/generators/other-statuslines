@@ -35,12 +35,14 @@ class OtherStatusline(Thread):
             try:
                 header = json.loads(str(proc.stdout.readline(), 'UTF-8'))
             except json.decoder.JSONDecodeError as e:
-                err = 'could not parse json for {}'.format(self.statusline_path)
+                err = 'could not parse json for {}'.format(
+                    self.statusline_path)
                 block.error(err)
                 raise e
 
             if 'version' not in header or header['version'] != 1:
-                err = 'invalid status header for {}'.format(self.statusline_path)
+                err = 'invalid status header for {}'.format(
+                    self.statusline_path)
                 block.error(err)
                 return
 
@@ -60,6 +62,7 @@ class OtherStatusline(Thread):
                     # XXX: we probably need a method to show more than one
                     # block
                     block.show(block)
+
 
 for statusline in statuslines:
     OtherStatusline(statusline).start()
