@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
+from i3dstatus.aio_block import Block
+
 import os
-from threading import Timer
-from i3dstatus.block import Block
+import asyncio
 
 block = Block(os.path.basename(__file__))
 
 disks = {'/': {}}
-
-if block.config:
-    disks = block.config
 
 MAX_EXPONENT = 4
 
@@ -38,53 +36,67 @@ def format_bytes(disk_bytes, prefix):
     return '{} <small>{}</small>'.format(round(size, 1), prefix['symbols'][exponent])
 
 
-# sanity check
-for path in disks.keys():
-    if not os.path.exists(path):
-        block.error('file not found: {}'.format(path))
-        sys.exit(1)
+async def show_disk(path, options):
+    vfs = os.statvfs(path)
+    prefix_type = 'custom'
+    format_str = '%free'
+
+    if 'prefix' in options:
+        prefix_type = options['prefix']
+
+    if 'format' in options:
+        format_str = options['format']
+
+    prefix = prefixes[prefix_type]
+
+    bytes_free = vfs.f_bsize * vfs.f_bfree
+    bytes_used = vfs.f_bsize * (vfs.f_blocks - vfs.f_bfree)
+    bytes_total = vfs.f_bsize * vfs.f_blocks
+    bytes_avail = vfs.f_bsize * vfs.f_bavail
+    percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
+
+    percentage_used_of_avail = round(100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
+
+    percentage_used = round(100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+
+    percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
+
+    context = {
+        'free': format_bytes(bytes_free, prefix),
+        'used': format_bytes(bytes_used, prefix),
+        'total': format_bytes(bytes_total, prefix),
+        'avail': format_bytes(bytes_avail, prefix) + '%',
+        'percentage_free': str(percentage_free) + '%',
+        'percentage_used_of_avail': str(percentage_used_of_avail) + '%',
+        'percentage_used': str(percentage_used) + '%',
+        'percentage_avail': str(percentage_avail) + '%',
+    }
+
+    await block.show(format_str, context=context, markup='pango')
 
 
-def on_tick():
-    for path, options in disks.items():
-        vfs = os.statvfs(path)
-        prefix_type = 'custom'
-        format_str = '%free'
-
-        if 'prefix' in options:
-            prefix_type = options['prefix']
-
-        if 'format' in options:
-            format_str = options['format']
-
-        prefix = prefixes[prefix_type]
-
-        bytes_free = vfs.f_bsize * vfs.f_bfree
-        bytes_used = vfs.f_bsize * (vfs.f_blocks - vfs.f_bfree)
-        bytes_total = vfs.f_bsize * vfs.f_blocks
-        bytes_avail = vfs.f_bsize * vfs.f_bavail
-        percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
-
-        percentage_used_of_avail = round(100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
-
-        percentage_used = round(100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
-
-        percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
-
-        context = {
-            'free': format_bytes(bytes_free, prefix),
-            'used': format_bytes(bytes_used, prefix),
-            'total': format_bytes(bytes_total, prefix),
-            'avail': format_bytes(bytes_avail, prefix) + '%',
-            'percentage_free': str(percentage_free) + '%',
-            'percentage_used_of_avail': str(percentage_used_of_avail) + '%',
-            'percentage_used': str(percentage_used) + '%',
-            'percentage_avail': str(percentage_avail) + '%',
-        }
-
-        block.show(format_str, context=context, markup='pango')
-
-    Timer(10.0, on_tick).start()
+async def show_disks():
+    await asyncio.gather(*(show_disk(path, options) for path, options in disks.items()))
 
 
-on_tick()
+async def main():
+    global MAX_EXPONENT, disks, block
+
+    await block.connect()
+
+    if block.config:
+        disks = block.config
+
+    # sanity check
+    for path in disks.keys():
+        if not os.path.exists(path):
+            block.error('file not found: {}'.format(path))
+            sys.exit(1)
+
+    while True:
+        await show_disks()
+        await asyncio.sleep(10)
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
