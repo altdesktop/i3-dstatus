@@ -1,88 +1,71 @@
 #!/usr/bin/env python3
-import time
-import atexit
 from urllib.request import urlopen
 from urllib.error import HTTPError, URLError
-from threading import Thread
-from threading import Lock
-from i3dstatus.block import Block
+from i3dstatus.aio_block import Block
 import os
-
-block = Block(os.path.basename(__file__))
+import asyncio
 
 up_format = ''
 down_format = \
         '<span color="red">%site is down (status: %status, %reason)</span>'
 interval = 600
-
 sites = []
 
-block_lock = Lock()
-
-if 'format-up' in block.config:
-    up_format = block.config['format-up']
-
-if 'format-down' in block.config:
-    down_format = block.config['format-down']
-
-if 'interval' in block.config:
-    interval = block.config['interval']
-
-if 'sites' in block.config:
-    sites = block.config['sites']
+block = Block(os.path.basename(__file__))
 
 
-def show_block(url, status, reason, is_up):
+async def show_block(url, status, reason, is_up):
     format_str = up_format if is_up else down_format
     context = {
         'site': url,
         'status': str(status),
         'reason': reason,
     }
-    block_lock.acquire()
+
+    await block.show(format_str, instance=url, markup="pango", context=context)
+
+
+async def check_http(url):
+    print(f'check {url}')
+    status = 'n/a'
+    reason = ''
+    is_up = True
     try:
-        block.show(format_str, instance=url, markup="pango", context=context)
-    finally:
-        block_lock.release()
+        resp = urlopen(url)
+        status = resp.status
+        reason = resp.reason
+    except URLError as e:
+        reason = e.reason
+        is_up = False
+    except HTTPError as e:
+        status = e.status
+        reason = e.reason
+        is_up = False
+
+    await show_block(url, status, reason, is_up)
 
 
-class HttpChecker(Thread):
-    def __init__(self, url):
-        self.url = url
-        Thread.__init__(self)
+async def main():
+    global up_format, down_format, interval
 
-    def run(self):
-        status = 'n/a'
-        reason = ''
-        is_up = True
-        try:
-            resp = urlopen(self.url)
-            status = resp.status
-            reason = resp.reason
-        except URLError as e:
-            reason = e.reason
-            is_up = False
-        except HTTPError as e:
-            status = e.status
-            reason = e.reason
-            is_up = False
+    await block.connect()
 
-        show_block(self.url, status, reason, is_up)
+    if 'format-up' in block.config:
+        up_format = block.config['format-up']
+
+    if 'format-down' in block.config:
+        down_format = block.config['format-down']
+
+    if 'interval' in block.config:
+        interval = block.config['interval']
+
+    if 'sites' in block.config:
+        sites = block.config['sites']
+
+    while True:
+        await asyncio.gather(*(check_http(site) for site in sites))
+        await asyncio.sleep(interval)
 
 
-def clear_blocks():
-    for url in sites:
-        block_lock.acquire()
-        try:
-            block.clear(instance=url)
-        finally:
-            block_lock.release()
-
-
-atexit.register(clear_blocks)
-
-while True:
-    for site in sites:
-        HttpChecker(site).start()
-
-    time.sleep(interval)
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())

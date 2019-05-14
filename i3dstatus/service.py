@@ -3,7 +3,6 @@
 import json
 import sys
 import os
-from subprocess import Popen
 import yaml
 import argparse
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -27,7 +26,7 @@ class Generator:
         self.generator_path = generator_path
         self.proc = None
 
-    def start(self):
+    async def start(self):
         # XXX: put i3dstatus in the env so generators can use the library in
         # development without a system install (is there a better way?)
         environ = dict(os.environ)
@@ -37,13 +36,18 @@ class Generator:
 
         environ['PYTHONPATH'] = pythonpath
 
-        self.proc = Popen(self.generator_path, env=environ)
+        self.proc = await asyncio.subprocess.create_subprocess_exec(self.generator_path,
+                                                                    env=environ,
+                                                                    stdout=PIPE,
+                                                                    stderr=PIPE)
+        await self.proc.wait()
 
 
 class StatusService(ServiceInterface):
-    def __init__(self, generators, stream=sys.stdout, config={}):
+    def __init__(self):
         super().__init__('com.dubstepdish.i3dstatus')
 
+    def start(self, generators, stream=sys.stdout, config={}):
         self.blocks = []
         self.generators = generators
         self.config = config if config else {}
@@ -77,7 +81,7 @@ class StatusService(ServiceInterface):
         self.stream.flush()
 
         for generator_path in paths:
-            Generator(generator_path).start()
+            asyncio.ensure_future(Generator(generator_path).start())
 
         if 'general' in self.config:
             if 'order' in self.config['general']:
@@ -218,7 +222,8 @@ example usage:
         bus = await MessageBus().connect()
         await bus.request_name('com.dubstepdish.i3dstatus')
 
-        service = StatusService(args.generators, config=config)
+        service = StatusService()
+        service.start(args.generators, config=config)
         bus.export('/com/dubstepdish/i3dstatus', service)
     except Exception as e:
         with open('/tmp/i3-dstatus-error.log', 'a') as f:
