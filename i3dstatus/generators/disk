@@ -35,8 +35,7 @@ def format_bytes(disk_bytes, prefix):
         size /= prefix['base']
         exponent += 1
 
-    return '{} <small>{}</small>'.format(round(size, 1),
-                                         prefix['symbols'][exponent])
+    return '{} <small>{}</small>'.format(round(size, 1), prefix['symbols'][exponent])
 
 
 # sanity check
@@ -66,11 +65,9 @@ def on_tick():
         bytes_avail = vfs.f_bsize * vfs.f_bavail
         percentage_free = round(100 * vfs.f_bfree / vfs.f_blocks, 2)
 
-        percentage_used_of_avail = round(
-            100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
+        percentage_used_of_avail = round(100 * (vfs.f_blocks - vfs.f_bavail) / vfs.f_blocks, 2)
 
-        percentage_used = round(
-            100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
+        percentage_used = round(100 * (vfs.f_blocks - vfs.f_bfree) / vfs.f_blocks, 2)
 
         percentage_avail = round(100 * vfs.f_bavail / vfs.f_blocks, 2)
 

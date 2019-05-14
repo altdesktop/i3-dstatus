@@ -43,8 +43,7 @@ def show_block():
 
         full_text = scratchpad_format.replace('%classes', ', '.join(classes))
         if has_urgent:
-            full_text = full_text.replace('%count',
-                                          urgent_fmt.format(len(scratchpad)))
+            full_text = full_text.replace('%count', urgent_fmt.format(len(scratchpad)))
         else:
             full_text = full_text.replace('%count', str(len(scratchpad)))
 

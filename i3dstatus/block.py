@@ -8,8 +8,7 @@ class Block:
         self.name = name
         self.bus = dbus.SessionBus()
         self.interface = dbus.Interface(
-            self.bus.get_object('com.dubstepdish.i3dstatus',
-                                '/com/dubstepdish/i3dstatus'),
+            self.bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus'),
             'com.dubstepdish.i3dstatus')
         self.config = json.loads(self.interface.get_config(self.name))
 
@@ -62,10 +61,8 @@ class Block:
     def notify(self, message):
         if self.notifications:
             # https://developer.gnome.org/notification-spec/
-            message = 'i3-dstatus [{generator}]: {msg}'.format(
-                generator=self.name, msg=message)
-            self.notifications.Notify('i3dstatus', 0, '', '', message, [], [],
-                                      -1)
+            message = 'i3-dstatus [{generator}]: {msg}'.format(generator=self.name, msg=message)
+            self.notifications.Notify('i3dstatus', 0, '', '', message, [], [], -1)
 
     def error(self, message):
         # TODO error log

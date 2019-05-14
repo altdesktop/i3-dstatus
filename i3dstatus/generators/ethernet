@@ -44,18 +44,12 @@ while True:
                 'iface': iface,
             }
 
-            block.show(opts['format-up'],
-                       instance=iface,
-                       context=context,
-                       markup='pango')
+            block.show(opts['format-up'], instance=iface, context=context, markup='pango')
         else:
             # device is down
             context = {
                 'iface': iface,
             }
-            block.show(opts['format-down'],
-                       instance=iface,
-                       context=context,
-                       markup='pango')
+            block.show(opts['format-down'], instance=iface, context=context, markup='pango')
 
     time.sleep(5)

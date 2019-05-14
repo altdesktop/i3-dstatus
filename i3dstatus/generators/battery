@@ -11,8 +11,7 @@ block = Block(os.path.basename(__file__))
 
 
 def get_first_battery_path(system_bus):
-    upower = system_bus.get_object('org.freedesktop.UPower',
-                                   '/org/freedesktop/UPower')
+    upower = system_bus.get_object('org.freedesktop.UPower', '/org/freedesktop/UPower')
     devices = upower.EnumerateDevices(dbus_interface='org.freedesktop.UPower')
 
     for d in devices:
@@ -61,11 +60,9 @@ def main():
         block.error('could not find upower dbus interface')
         raise e
 
-    battery_properties = dbus.Interface(battery,
-                                        'org.freedesktop.DBus.Properties')
+    battery_properties = dbus.Interface(battery, 'org.freedesktop.DBus.Properties')
 
-    percentage = battery_properties.Get('org.freedesktop.UPower.Device',
-                                        'Percentage')
+    percentage = battery_properties.Get('org.freedesktop.UPower.Device', 'Percentage')
 
     update_status({'Percentage': percentage}, battery_format, battery_name)
 
