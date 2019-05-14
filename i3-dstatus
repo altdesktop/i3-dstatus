@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
 import i3dstatus
+import asyncio
 
-i3dstatus.start()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(i3dstatus.start())

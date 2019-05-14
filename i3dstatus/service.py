@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
-from gi.repository import GLib
 import json
-import dbus
-import dbus.service
 import sys
 import os
-import threading
-import subprocess
-from dbus.mainloop.glib import DBusGMainLoop
+from subprocess import Popen
 import yaml
 import argparse
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import datetime
 import traceback
 from enum import Enum
+
+from dbus_next.service import ServiceInterface, method
+from dbus_next.aio import MessageBus
+import asyncio
 
 
 class LogLevel(Enum):
@@ -23,12 +22,12 @@ class LogLevel(Enum):
     ERROR = 3
 
 
-class GeneratorThread(threading.Thread):
+class Generator:
     def __init__(self, generator_path):
         self.generator_path = generator_path
-        threading.Thread.__init__(self)
+        self.proc = None
 
-    def run(self):
+    def start(self):
         # XXX: put i3dstatus in the env so generators can use the library in
         # development without a system install (is there a better way?)
         environ = dict(os.environ)
@@ -38,17 +37,12 @@ class GeneratorThread(threading.Thread):
 
         environ['PYTHONPATH'] = pythonpath
 
-        subprocess.call(self.generator_path, env=environ)
+        self.proc = Popen(self.generator_path, env=environ)
 
 
-class DStatusService(dbus.service.Object):
+class StatusService(ServiceInterface):
     def __init__(self, generators, stream=sys.stdout, config={}):
-        DBusGMainLoop(set_as_default=True)
-        bus = dbus.SessionBus()
-
-        bus_name = dbus.service.BusName('com.dubstepdish.i3dstatus', bus=bus)
-        dbus.service.Object.__init__(self, bus_name,
-                                     '/com/dubstepdish/i3dstatus')
+        super().__init__('com.dubstepdish.i3dstatus')
 
         self.blocks = []
         self.generators = generators
@@ -71,21 +65,19 @@ class DStatusService(dbus.service.Object):
             if os.path.isabs(os.path.expanduser(generator)):
                 generator_path = os.path.expanduser(generator)
             else:
-                generator_path = os.path.join(script_dir, 'generators',
-                                              generator)
+                generator_path = os.path.join(script_dir, 'generators', generator)
 
             if os.path.isfile(generator_path):
                 paths.append(generator_path)
             else:
-                sys.stderr.write(
-                    "Could not find generator: {}".format(generator))
+                sys.stderr.write("Could not find generator: {}".format(generator))
 
         self.stream.write('{"version":1}\n[\n[]\n')
         # self.stream..write('{"version":1, "click_events":true}\n[\n[]\n')
         self.stream.flush()
 
         for generator_path in paths:
-            GeneratorThread(generator_path).start()
+            Generator(generator_path).start()
 
         if 'general' in self.config:
             if 'order' in self.config['general']:
@@ -93,10 +85,14 @@ class DStatusService(dbus.service.Object):
                 # command line
                 self.generators = self.config['general']['order']
 
-    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='a{sv}')
-    def show_block(self, block):
+    @method()
+    def show_block(self, block: 'a{sv}'):
         # apply config options to the block
         block_config = {}
+
+        for k, v in block.items():
+            block[k] = v.value
+
         if block['name'] in self.config:
             if 'instance' in block and \
                     block['instance'] in self.config[block['name']]:
@@ -107,8 +103,7 @@ class DStatusService(dbus.service.Object):
 
         for i3bar_key in [
                 'color', 'min_width', 'min-width'
-                'align', 'separator', 'separator_block_width',
-                'separator-block-width'
+                'align', 'separator', 'separator_block_width', 'separator-block-width'
         ]:
             if i3bar_key.replace('-', '_') in block:
                 # if given in the block, it overrides the config
@@ -136,9 +131,7 @@ class DStatusService(dbus.service.Object):
             self.blocks.append(block)
 
         # filter out blocks with no 'full_text' member
-        self.blocks = [
-            b for b in self.blocks if 'full_text' in b and b['full_text']
-        ]
+        self.blocks = [b for b in self.blocks if 'full_text' in b and b['full_text']]
 
         # sort by the order the generators were given
         def sort_blocks(b):
@@ -149,30 +142,24 @@ class DStatusService(dbus.service.Object):
 
         self.blocks.sort(key=sort_blocks)
 
-        self.stream.write(',' + json.dumps(self.blocks, ensure_ascii=False) +
-                          '\n')
+        self.stream.write(',' + json.dumps(self.blocks, ensure_ascii=False) + '\n')
         self.stream.flush()
 
-    @dbus.service.method('com.dubstepdish.i3dstatus',
-                         in_signature='s',
-                         out_signature='s')
-    def get_config(self, block_name):
+    @method()
+    def get_config(self, block_name: 's') -> 's':
         if block_name in self.config:
             return json.dumps(self.config[block_name], ensure_ascii=False)
         else:
             return '{}'
 
-    @dbus.service.method('com.dubstepdish.i3dstatus', in_signature='iss')
-    def generator_log(self, log_level, block_name, message):
-        print('got log message: log_level = {}, block_name = {}, message = {}'.
-              format(log_level, block_name, message),
+    @method()
+    def generator_log(self, log_level: 'i', block_name: 's', message: 's'):
+        print('got log message: log_level = {}, block_name = {}, message = {}'.format(
+            log_level, block_name, message),
               file=sys.stderr)
 
-    def main(self):
-        GLib.MainLoop().run()
 
-
-def start():
+async def start():
     description = '''\
 Another great statusline generator for i3wm.\
     '''
@@ -228,8 +215,11 @@ example usage:
             pass
 
     try:
-        service = DStatusService(args.generators, config=config)
-        service.main()
+        bus = await MessageBus().connect()
+        await bus.request_name('com.dubstepdish.i3dstatus')
+
+        service = StatusService(args.generators, config=config)
+        bus.export('/com/dubstepdish/i3dstatus', service)
     except Exception as e:
         with open('/tmp/i3-dstatus-error.log', 'a') as f:
             f.write("ERROR - " + str(datetime.datetime.now()) + "\n")
@@ -237,6 +227,10 @@ example usage:
             f.write('\n')
         raise e
 
+    loop = asyncio.get_event_loop()
+    await loop.create_future()
+
 
 if __name__ == '__main__':
-    start()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(start())
