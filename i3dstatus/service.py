@@ -13,6 +13,7 @@ from enum import Enum
 from dbus_next.service import ServiceInterface, method
 from dbus_next.aio import MessageBus
 import asyncio
+from asyncio.subprocess import PIPE
 
 
 class LogLevel(Enum):
