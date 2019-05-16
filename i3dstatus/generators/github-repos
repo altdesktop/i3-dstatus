@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+from i3dstatus.aio_block import Block
 
 import time
 import requests
 import atexit
 from requests.exceptions import ConnectionError
 import os
-
-from i3dstatus.block import Block
+import asyncio
 
 block = Block(os.path.basename(__file__))
 
@@ -18,17 +18,8 @@ format_str = '<span color="yellow">★</span>%stars <small>?</small>%issues'
 users = ['acrisci']
 interval = 600
 
-if 'users' in block.config:
-    users = block.config['users']
 
-if 'format' in block.config:
-    format_str = block.config['format']
-
-if 'interval' in block.config:
-    interval = block.config['interval']
-
-
-def show_block(stars, issues, watchers):
+async def show_block(stars, issues, watchers):
     context = {
         'users': ', '.join(users),
         'stars': str(stars),
@@ -36,41 +27,54 @@ def show_block(stars, issues, watchers):
         'watchers': str(watchers),
     }
 
-    block.show(format_str, context=context, markup='pango')
+    await block.show(format_str, context=context, markup='pango')
 
 
-atexit.register(block.clear)
+async def get_repo_stats():
+    stars = 0
+    issues = 0
+    watchers = 0
+
+    try:
+        for user in users:
+            page = 1
+            while True:
+                url = 'https://api.github.com/users/%s/repos' % user
+                repos = requests.get(url, params={'page': page}).json()
+                page += 1
+
+                if not repos:
+                    break
+
+                for r in repos:
+                    stars += r['stargazers_count']
+                    issues += r['open_issues_count']
+                    watchers += r['watchers_count']
+
+        await show_block(stars, issues, watchers)
+    except ConnectionError:
+        # oops couldn't connect
+        pass
 
 
-def main():
+async def main():
+    global block_name, format_str, users, interval
+
+    await block.connect()
+
+    if 'users' in block.config:
+        users = block.config['users']
+
+    if 'format' in block.config:
+        format_str = block.config['format']
+
+    if 'interval' in block.config:
+        interval = block.config['interval']
+
     while True:
-        stars = 0
-        issues = 0
-        watchers = 0
-
-        try:
-            for user in users:
-                page = 1
-                while True:
-                    url = 'https://api.github.com/users/%s/repos' % user
-                    repos = requests.get(url, params={'page': page}).json()
-                    page += 1
-
-                    if not repos:
-                        break
-
-                    for r in repos:
-                        stars += r['stargazers_count']
-                        issues += r['open_issues_count']
-                        watchers += r['watchers_count']
-
-            show_block(stars, issues, watchers)
-        except ConnectionError:
-            # oops couldn't connect
-            pass
-
-        time.sleep(interval)
+        await get_repo_stats()
+        await asyncio.sleep(300)
 
 
-if __name__ == '__main__':
-    main()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())

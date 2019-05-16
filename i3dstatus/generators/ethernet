@@ -17,6 +17,7 @@ except ImportError as e:
 default_up = '%iface: %ip'
 default_down = '%iface: <b>down</b>'
 
+
 async def show_iface(iface, opts):
     addr = netifaces.ifaddresses(iface)
     if netifaces.AF_INET in addr:
