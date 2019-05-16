@@ -1,32 +1,50 @@
 #!/usr/bin/env python3
 
-from i3dstatus.block import Block
+from i3dstatus.aio_block import Block
 from shutil import which
 import os
 import sys
-import subprocess
 from subprocess import Popen, PIPE
+import asyncio
+from asyncio.subprocess import create_subprocess_exec, PIPE
 
-block = Block(os.path.basename(__file__))
 
-player_format = '{{artist}} - {{title}} {{duration(position)}}|{{duration(mpris:length)}}'
-playerctl_path = which('playerctl')
+async def main():
+    block = await Block(os.path.basename(__file__)).connect()
 
-if 'format' in block.config:
-    player_format = block.config['format']
+    player_format = '{{artist}} - {{title}} {{duration(position)}}|{{duration(mpris:length)}}'
+    playerctl_path = which('playerctl')
 
-if 'path' in block.config:
-    playerctl_path = block.config['path']
+    if 'format' in block.config:
+        player_format = block.config['format']
 
-if not playerctl_path:
-    block.error('could not find playerctl in the path')
-    sys.exit(1)
+    if 'path' in block.config:
+        playerctl_path = block.config['path']
 
-if not os.path.exists(playerctl_path):
-    block.error('could not find playerctl path at {}'.format(playerctl_path))
-    sys.exit(1)
+    if not playerctl_path:
+        block.error('could not find playerctl in the path')
+        sys.exit(1)
 
-with Popen([playerctl_path, 'metadata', '--format', player_format, '--follow'], stdout=PIPE) as p:
-    for line in p.stdout:
-        line = str.strip(line.decode('utf8'))
-        block.show(line)
+    if not os.path.exists(playerctl_path):
+        block.error('could not find playerctl path at {}'.format(playerctl_path))
+        sys.exit(1)
+
+    process = await create_subprocess_exec(playerctl_path,
+                                           'metadata',
+                                           '--format',
+                                           player_format,
+                                           '--follow',
+                                           stdout=PIPE,
+                                           stderr=PIPE)
+
+    while True:
+        line = await process.stdout.readline()
+        line = str.strip(line.decode())
+        await block.show(line)
+
+        if process.stdout.at_eof():
+            break
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
