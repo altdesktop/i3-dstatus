@@ -1,32 +1,30 @@
 #!/usr/bin/env python3
 
-import cgi
-import os
-from i3dstatus.block import Block
+from i3dstatus.aio_block import Block
 
-block = Block(os.path.basename(__file__))
+import html
+import os
+import asyncio
 
 try:
-    import i3ipc
+    from i3ipc.aio import Connection
 except ImportError as e:
     block.error('could not find python3 module i3ipc')
     raise e
 
-i3 = i3ipc.Connection()
-
 scratchpad_format = 'scratchpad: <b>%classes</b>'
 
-if 'format' in block.config:
-    scratchpad_format = block.config['format']
+block = Block(os.path.basename(__file__))
 
 last_full_text = ''
 
 
-def show_block():
+async def show_block(i3):
     global last_full_text
-    block = {"name": "scratchpad", "markup": "pango", "full_text": ""}
+    data = {"markup": "pango", "full_text": ""}
 
-    scratchpad = i3.get_tree().scratchpad().leaves()
+    tree = await i3.get_tree()
+    scratchpad = tree.scratchpad().leaves()
 
     if scratchpad:
         classes = []
@@ -34,7 +32,7 @@ def show_block():
         urgent_fmt = '<span color="red">{}</span>'
 
         for l in scratchpad:
-            window_class = cgi.escape(l.window_class)
+            window_class = html.escape(l.window_class)
             if l.urgent:
                 has_urgent = True
                 classes.append(urgent_fmt.format(window_class))
@@ -47,24 +45,38 @@ def show_block():
         else:
             full_text = full_text.replace('%count', str(len(scratchpad)))
 
-        block['full_text'] = full_text
+        data['full_text'] = full_text
 
-    if block['full_text'] != last_full_text:
-        last_full_text = block['full_text']
-        i3dstatus.show_block(block)
-
-
-def on_move(i3, e):
-    show_block()
+    if data['full_text'] != last_full_text:
+        last_full_text = data['full_text']
+        print(data)
+        await block.show(**data)
 
 
-def on_urgent(i3, e):
-    show_block()
+async def on_move(i3, e):
+    await show_block(i3)
 
 
-show_block()
+async def on_urgent(i3, e):
+    await show_block(i3)
 
-i3.on('window::move', on_move)
-i3.on('window::urgent', on_urgent)
 
-i3.main()
+async def main():
+    global scratchpad_format
+    i3 = Connection()
+
+    await asyncio.gather(i3.connect(), block.connect())
+
+    if 'format' in block.config:
+        scratchpad_format = block.config['format']
+
+    await show_block(i3)
+
+    i3.on('window::move', on_move)
+    i3.on('window::urgent', on_urgent)
+
+    await i3.main()
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
