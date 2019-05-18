@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import cgi
-import os
+from i3dstatus.aio_block import Block
 
-from i3dstatus.block import Block
+import html
+import os
+import asyncio
 
 block = Block(os.path.basename(__file__))
-
-try:
-    import i3ipc
-except ImportError as e:
-    block.error('could not import python3 module i3ipc')
-    raise e
-
 truncate_length = 100
 
-if 'truncate-length' in block.config:
-    truncate_length = block.config['truncate-length']
+try:
+    from i3ipc.aio import Connection
+except ImportError as e:
+    block.error('could not import aio connection from i3ipc')
+    raise e
 
 
 def process_title(name):
@@ -27,18 +24,28 @@ def process_title(name):
     if len(name) > truncate_length:
         name = name[0:truncate_length].rstrip() + '…'
 
-    return cgi.escape(name)
+    return html.escape(name)
 
 
-def on_focus_title_change(_i3, e):
+async def on_focus_title_change(_i3, e):
     if e.container.focused:
-        block.show(process_title(e.container.name), markup='pango')
+        await block.show(process_title(e.container.name), markup='pango')
 
 
-i3 = i3ipc.Connection()
-i3.on('window::focus', on_focus_title_change)
-i3.on('window::title', on_focus_title_change)
+async def main():
+    i3 = Connection()
 
-block.show(process_title(i3.get_tree().find_focused().name), markup='pango')
+    await asyncio.gather(i3.connect(), block.connect())
+    tree = await i3.get_tree()
+    await block.show(process_title(tree.find_focused().name), markup='pango')
 
-i3.main()
+    if 'truncate-length' in block.config:
+        truncate_length = block.config['truncate-length']
+
+    i3.on('window::focus', on_focus_title_change)
+    i3.on('window::title', on_focus_title_change)
+
+    await i3.main()
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
