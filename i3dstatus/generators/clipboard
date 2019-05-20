@@ -1,35 +1,40 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-import gi
-import cgi
+from i3dstatus.aio_block import Block
+
+from Xlib.display import Display
+from Xlib.protocol import rq
+from Xlib import X, Xatom
+
+import html
 import os
-
-from i3dstatus.block import Block
+import sys
+import asyncio
 
 block = Block(os.path.basename(__file__))
 
-try:
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, GLib, Gdk
-except ImportError as e:
-    block.error('could not import python3 gobject Gtk library')
-    raise e
-
-truncate_length = 20
+truncate_length = 50
 clipboard_format = '%text'
 
-if 'format' in block.config:
-    clipboard_format = block.config['format']
-if 'truncate-length' in block.config:
-    truncate_length = block.config['truncate-length']
+
+class SelectSelectionInput(rq.Request):
+    _request = rq.Struct(rq.Card8('opcode'), rq.Opcode(2), rq.RequestLength(), rq.Window('window'),
+                         rq.Card32('selection'), rq.Card32('mask'))
+
+
+def select_selection_input(self, window, selection, mask):
+    return SelectSelectionInput(opcode=self.display.get_extension_major('XFIXES'),
+                                display=self.display,
+                                window=window,
+                                selection=selection,
+                                mask=mask)
 
 
 def format_clipboard_text(cb):
     if not cb:
         return ""
 
-    cb = cgi.escape(cb.replace('\n', ''))
+    cb = html.escape(cb.replace('\n', ''))
 
     if len(cb) > truncate_length:
         cb = cb[0:truncate_length].rstrip() + '…'
@@ -37,31 +42,62 @@ def format_clipboard_text(cb):
     return cb
 
 
-def on_owner_change(clipboard, _event):
-    cb = clipboard.wait_for_text()
+async def main():
+    global clipboard_format, truncate_length
 
-    if not cb:
-        # no clipboard, so clear the block
-        block.clear()
-        return
+    display = Display()
+    root = display.screen().root
 
-    context = {'text': format_clipboard_text(cb)}
+    await block.connect()
 
-    block.show(clipboard_format, context=context, markup='pango')
+    if 'format' in block.config:
+        clipboard_format = block.config['format']
+    if 'truncate-length' in block.config:
+        truncate_length = block.config['truncate-length']
+
+    try:
+        display.extension_add_method('display', 'xfixes_select_selection_input',
+                                     select_selection_input)
+    except AssertionError:
+        pass
+
+    if display.query_extension('XFIXES') is None:
+        msg = 'XFIXES extension not supported'
+        await block.error(msg)
+        raise Exception(msg)
+
+    display.xfixes_query_version()
+
+    sel_atom = display.get_atom('CLIPBOARD')
+    display.xfixes_select_selection_input(root, sel_atom, 1 | 2 | 4)
+
+    data_atom = display.get_atom('XSEL_DATA')
+    target_name = 'UTF8_STRING'
+    target_atom = display.get_atom(target_name)
+
+    data_window = root.create_window(0, 0, 10, 10, 0, X.CopyFromParent)
+    data_window.convert_selection(sel_atom, target_atom, data_atom, X.CurrentTime)
+
+    while True:
+        e = display.next_event()
+
+        if e.type == X.SelectionNotify:
+            prop = data_window.get_full_property(data_atom, X.AnyPropertyType, sizehint=10000)
+
+            contents = ''
+            if prop is not None:
+                contents = prop.value.decode()
+
+            data_window.delete_property(data_atom)
+
+            context = {'text': format_clipboard_text(contents.strip())}
+
+            await block.show(clipboard_format, markup='pango', context=context)
+
+            continue
+
+        data_window.convert_selection(sel_atom, target_atom, data_atom, X.CurrentTime)
 
 
-def main():
-    clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-    cb_text = clipboard.wait_for_text()
-
-    context = {'text': format_clipboard_text(cb_text)}
-
-    block.show(clipboard_format, context=context, markup='pango')
-
-    clipboard.connect('owner-change', on_owner_change)
-
-    GLib.MainLoop().run()
-
-
-if __name__ == '__main__':
-    main()
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
