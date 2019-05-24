@@ -172,13 +172,14 @@ Another great statusline generator for i3wm.\
     epilog = '''\
 available generators:
   battery           - show battery information
+  check-http        - poll a site and show if it is up or down
   clipboard         - show the contents of the clipboard
   clock             - show the current time
   disk              - show disk usage statistics
-  ethernet          - show information about a network device
   focused-window    - show the currently focused window
-  mediaplayer       - show artist/title of the currently playing track
-  other-statuslines - show the output of another statusline
+  github-repos      - show issues and stars about github repos for a user
+  netifaces         - show information about a network interface
+  playerctl         - use playerctl to show track metadata
   scratchpad        - show what windows are in the i3 scratchpad
 
 example usage:

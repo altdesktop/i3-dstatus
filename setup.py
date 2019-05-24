@@ -10,7 +10,7 @@ setup(
     description='The ultimate DIY statusline generator for i3',
     long_description=open('README.rst').read(),
 
-    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'ijson', 'requests', 'vext', 'vext.gi'],
+    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'requests'],
 
     classifiers=[
         'Development Status :: 4 - Beta',

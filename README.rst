@@ -6,9 +6,6 @@ The ultimate DIY statusline generator for `i3wm <http://i3wm.org>`__.
 About
 -----
 
-*i3-dstatus is in the early phases of development and will need some
-adjustments to get right. If you use i3-dstatus, send me feedback!*
-
 i3-dstatus is a statusline generator for i3 that you can use to display
 system information you may be interested in. i3 comes with ``i3status``
 which has many limitations. It has no plugin interface. It has no
@@ -42,9 +39,6 @@ i3-dstatus is on `PyPI <https://pypi.python.org/pypi/i3-dstatus>`__.
 ::
 
     pip install i3-dstatus
-
-You'll also need ``python-gobject`` and ``python-dbus`` from your package
-manager.
 
 Usage
 -----

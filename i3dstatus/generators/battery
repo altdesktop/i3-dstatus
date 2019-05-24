@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from i3dstatus.aio_block import Block
+from i3dstatus.block import Block
+
 from dbus_next.aio import MessageBus
 from dbus_next import BusType
 import sys
@@ -9,7 +10,6 @@ import asyncio
 
 block = Block(os.path.basename(__file__))
 bus = MessageBus(bus_type=BusType.SYSTEM)
-
 
 upower_xml = '''
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
@@ -173,7 +173,6 @@ async def main(loop):
                 battery_path = d
                 break
 
-
     if not battery_path:
         await block.error('could not find a battery')
         sys.exit(1)
@@ -196,6 +195,7 @@ async def main(loop):
     battery_properties.on_properties_changed(signal_handler)
 
     await loop.create_future()
+
 
 loop = asyncio.get_event_loop()
 loop.run_until_complete(main(loop))
