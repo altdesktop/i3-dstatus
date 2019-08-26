@@ -145,7 +145,7 @@ async def update_status(properties, battery_format, battery_name):
     }
 
     if 'Percentage' in properties:
-        context['percentage'] = properties['Percentage']
+        context['percentage'] = properties['Percentage'].value
 
     await block.show(battery_format, markup='pango', context=context)
 
@@ -185,7 +185,7 @@ async def main(loop):
 
     percentage = await battery_properties.call_get('org.freedesktop.UPower.Device', 'Percentage')
 
-    await update_status({'Percentage': percentage.value}, battery_format, battery_name)
+    await update_status({'Percentage': percentage}, battery_format, battery_name)
 
     def signal_handler(interface, properties, invalidated):
         # TODO handle more properties
