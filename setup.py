@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='i3-dstatus',
-    version='0.0.4',
+    version='0.1.1',
     author='Tony Crisci',
     author_email='tony@dubstepdish.com',
     url='https://github.com/altdesktop/i3-dstatus',
