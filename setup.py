@@ -5,12 +5,12 @@ setup(
     version='0.0.4',
     author='Tony Crisci',
     author_email='tony@dubstepdish.com',
-    url='https://github.com/acrisci/i3-dstatus',
+    url='https://github.com/altdesktop/i3-dstatus',
     license='BSD',
     description='The ultimate DIY statusline generator for i3',
     long_description=open('README.rst').read(),
 
-    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'requests'],
+    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'requests', 'dbus-next'],
 
     classifiers=[
         'Development Status :: 4 - Beta',

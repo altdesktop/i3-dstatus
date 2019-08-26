@@ -9,4 +9,8 @@ lint:
 format:
 	yapf -rip $(source_dirs)
 
+publish:
+	python3 setup.py sdist bdist_wheel
+	python3 -m twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+
 all: format lint

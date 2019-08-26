@@ -82,12 +82,17 @@ like this:
 
 .. code:: python
 
-    import dbus
+    from dbus_next.aio import MessageBus
+    from dbus_next import Variant
 
-    bus = dbus.SessionBus()
-    bus_object = bus.get_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
-    i3dstatus = dbus.Interface(bus_object, 'com.dubstepdish.i3dstatus')
-    i3dstatus.show_block({"name": "test", "full_text": "hello world"})
+    bus = await MessageBus().connect()
+    introspection = await bus.introspect('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
+    obj = bus.get_proxy_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus')
+    i3dstatus = obj.get_interface('com.dubstepdish.i3dstatus')
+    await i3dstatus.call_show_block({
+        'name': Variant('s', 'test'),
+        'full_text': Variant('s', 'hello world')
+    })
 
 You can update the statusline from any language with dbus bindings
 (which is pretty much all of them). You can even update the statusline

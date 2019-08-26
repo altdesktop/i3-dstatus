@@ -15,7 +15,7 @@ block = Block(os.path.basename(__file__))
 
 block_name = 'github-repos'
 format_str = '<span color="yellow">★</span>%stars <small>?</small>%issues'
-users = ['acrisci']
+users = ['altdesktop']
 interval = 600
 
 
