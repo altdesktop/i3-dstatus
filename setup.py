@@ -10,7 +10,7 @@ setup(
     description='The ultimate DIY statusline generator for i3',
     long_description=open('README.rst').read(),
 
-    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'requests', 'dbus-next'],
+    install_requires=['PyYAML', 'netifaces', 'i3ipc', 'requests', 'dbus-next', 'python-xlib'],
 
     classifiers=[
         'Development Status :: 4 - Beta',
