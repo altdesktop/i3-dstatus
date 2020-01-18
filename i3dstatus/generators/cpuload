@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+
+from i3dstatus.block import Block
+
+import time
+import atexit
+from requests.exceptions import ConnectionError
+import os
+import asyncio
+
+block = Block(os.path.basename(__file__))
+
+# display aggregate info on your users github repos
+
+block_name = 'cpuload'
+
+INTERVAL = 0.1
+
+def getTimeList():
+    """
+    Fetches a list of time units the cpu has spent in various modes
+    Detailed explanation at http://www.linuxhowtos.org/System/procstat.htm
+    """
+    cpuStats = open("/proc/stat", "r").readline()
+    columns = cpuStats.replace("cpu", "").split(" ")
+    return map(int, filter(None, columns))
+
+val = "▁▂▃▄▅▆▇█"
+current = "▁▁▁load▁"
+
+def deltaTime(interval):
+    """
+    Returns the difference of the cpu statistics returned by getTimeList
+    that occurred in the given time delta
+    """
+    timeList1 = getTimeList()
+    time.sleep(interval)
+    timeList2 = getTimeList()
+    return [(t2-t1) for t1, t2 in zip(timeList1, timeList2)]
+
+def getCpuLoad():
+    """
+    Returns the cpu load as a value from the interval [0.0, 1.0]
+    """
+    dt = list(deltaTime(INTERVAL))
+    idle_time = float(dt[3])
+    total_time = sum(dt)
+    load = 1-(idle_time/total_time)
+    return load
+
+
+
+async def show_block(block_format):
+    global current, val
+    
+    load = getCpuLoad()
+    step = int(load*17)
+    if step > 7:
+        step = 7
+    current = (current+val[step])[1:]
+    context = {
+        'cpuload': f"{'%3.2f' % (load*100.0)}%",
+        'bar': current,
+    }
+    await block.show(block_format, context=context, markup='pango')
+
+
+async def main():
+
+    await block.connect()
+    block_format = "%cpuload %bar"
+    interval = 5
+    if 'format' in block.config:
+        block_format = block.config['format']
+    if 'interval' in block.config:
+        interval = int(block.config['interval'])
+
+    while True:
+        await show_block(block_format)
+        await asyncio.sleep(interval)
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
