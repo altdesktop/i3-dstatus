@@ -17,6 +17,8 @@ block_name = 'github-repos'
 format_str = '<span color="yellow">★</span>%stars <small>?</small>%issues'
 users = ['altdesktop']
 interval = 600
+token = None
+token_username = None
 
 
 async def show_block(stars, issues, watchers):
@@ -40,7 +42,16 @@ async def get_repo_stats():
             page = 1
             while True:
                 url = 'https://api.github.com/users/%s/repos' % user
-                repos = requests.get(url, params={'page': page}).json()
+                auth = None
+                if token is not None and token_username is not None:
+                    auth = (token_username, token)
+                resp = requests.get(url, params={'page': page}, auth=auth)
+
+                if resp.status_code == 403:
+                    # rate limiting
+                    return
+
+                repos = resp.json()
                 page += 1
 
                 if not repos:
@@ -52,13 +63,13 @@ async def get_repo_stats():
                     watchers += r['watchers_count']
 
         await show_block(stars, issues, watchers)
-    except ConnectionError:
+    except ConnectionError as e:
         # oops couldn't connect
         pass
 
 
 async def main():
-    global block_name, format_str, users, interval
+    global block_name, format_str, users, interval, token, token_username
 
     await block.connect()
 
@@ -70,6 +81,9 @@ async def main():
 
     if 'interval' in block.config:
         interval = block.config['interval']
+
+    if 'auth' in block.config:
+        token_username, token = block.config['auth']
 
     while True:
         await get_repo_stats()
