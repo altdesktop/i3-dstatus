@@ -145,9 +145,9 @@ async def update_status(properties, battery_format, battery_name):
     }
 
     if 'Percentage' in properties:
-        context['percentage'] = properties['Percentage'].value
+        context['percentage'] = str(properties['Percentage'].value)
 
-    await block.show(battery_format, markup='pango', context=context)
+        await block.show(battery_format, markup='pango', context=context)
 
 
 async def main(loop):
