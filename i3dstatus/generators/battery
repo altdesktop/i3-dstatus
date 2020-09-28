@@ -7,6 +7,7 @@ from dbus_next import BusType
 import sys
 import os
 import asyncio
+import copy
 
 block = Block(os.path.basename(__file__))
 bus = MessageBus(bus_type=BusType.SYSTEM)
@@ -137,17 +138,54 @@ upower_device_xml = '''
   </interface>
 </node>'''
 
+context = {
+    'name': '',
+    'percentage': '',
+    'icon': ''
+}
+
+def state_to_icon(state):
+    '''https://upower.freedesktop.org/docs/Device.html'''
+    print(state)
+    if state == 0:
+        # unknown
+        return ''
+    elif state == 1:
+        # charging
+        return '🔌'
+    elif state == 2:
+        # discharging
+        return '🔋'
+    elif state == 3:
+        # empty
+        return '🚫'
+    elif state == 4:
+        # fully charged
+        return '⚡'
+    elif state == 5:
+        # pending charged (?)
+        return '🔌'
+    elif state == 6:
+        # pending discharge (?)
+        return '🔋'
+    return ''
+
 
 async def update_status(properties, battery_format, battery_name):
-    context = {
-        'name': battery_name,
-        'percentage': '',
-    }
+    global context
+    new_context = copy.deepcopy(context)
 
     if 'Percentage' in properties:
-        context['percentage'] = str(round(properties['Percentage'].value))
+        new_context['percentage'] = str(round(properties['Percentage'].value))
 
-        await block.show(battery_format, markup='pango', context=context)
+    if 'State' in properties:
+        new_context['icon'] = state_to_icon(properties['State'].value)
+
+    if new_context == context:
+        return
+
+    await block.show(battery_format, markup='pango', context=new_context)
+    context = new_context
 
 
 async def main(loop):
@@ -171,13 +209,14 @@ async def main(loop):
 
     battery_properties = battery_obj.get_interface('org.freedesktop.DBus.Properties')
 
-    percentage = await battery_properties.call_get('org.freedesktop.UPower.Device', 'Percentage')
+    properties = await battery_properties.call_get_all('org.freedesktop.UPower.Device')
 
-    await update_status({'Percentage': percentage}, battery_format, name)
+    await update_status(properties, battery_format, name)
 
     def signal_handler(interface, properties, invalidated):
         # TODO handle more properties
-        if 'Percentage' in properties:
+        handled_properties = ['Percentage', 'State']
+        if any(item in properties for item in handled_properties):
             asyncio.ensure_future(update_status(properties, battery_format, name))
 
     battery_properties.on_properties_changed(signal_handler)
