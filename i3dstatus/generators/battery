@@ -138,15 +138,11 @@ upower_device_xml = '''
   </interface>
 </node>'''
 
-context = {
-    'name': '',
-    'percentage': '',
-    'icon': ''
-}
+context = {'name': '', 'percentage': 0.0, 'icon': ''}
 
-def state_to_icon(state):
+
+def state_to_icon(state, percentage):
     '''https://upower.freedesktop.org/docs/Device.html'''
-    print(state)
     if state == 0:
         # unknown
         return ''
@@ -155,7 +151,10 @@ def state_to_icon(state):
         return '🔌'
     elif state == 2:
         # discharging
-        return '🔋'
+        if percentage < 10.0:
+            return '⚠️'
+        else:
+            return '🔋'
     elif state == 3:
         # empty
         return '🚫'
@@ -167,7 +166,10 @@ def state_to_icon(state):
         return '🔌'
     elif state == 6:
         # pending discharge (?)
-        return '🔋'
+        if percentage < 10.0:
+            return '⚠️'
+        else:
+            return '🔋'
     return ''
 
 
@@ -176,10 +178,11 @@ async def update_status(properties, battery_format, battery_name):
     new_context = copy.deepcopy(context)
 
     if 'Percentage' in properties:
-        new_context['percentage'] = str(round(properties['Percentage'].value))
+        new_context['percentage'] = round(properties['Percentage'].value)
 
     if 'State' in properties:
-        new_context['icon'] = state_to_icon(properties['State'].value)
+        percentage = new_context['percentage']
+        new_context['icon'] = state_to_icon(properties['State'].value, percentage)
 
     if new_context == context:
         return
