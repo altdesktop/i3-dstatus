@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+
+from dbus_next.aio import MessageBus
+from dbus_next import BusType
+from i3dstatus.block import Block, get_interface_definition
+from enum import Enum
+import copy
+import asyncio
+import os
+from asyncio import Queue
+
+
+class NMState(Enum):
+    UNKNOWN = 0  # Networking state is unknown. This indicates a daemon error that makes it unable to reasonably assess the state. In such event the applications are expected to assume Internet connectivity might be present and not disable controls that require network access. The graphical shells may hide the network accessibility indicator altogether since no meaningful status indication can be provided.
+    ASLEEP = 10  # Networking is not enabled, the system is being suspended or resumed from suspend.
+    DISCONNECTED = 20  # There is no active network connection. The graphical shell should indicate no network connectivity and the applications should not attempt to access the network.
+    DISCONNECTING = 30  # Network connections are being cleaned up. The applications should tear down their network sessions.
+    CONNECTING = 40  # A network connection is being started The graphical shell should indicate the network is being connected while the applications should still make no attempts to connect the network.
+    CONNECTED_LOCAL = 50  # There is only local IPv4 and/or IPv6 connectivity, but no default route to access the Internet. The graphical shell should indicate no network connectivity.
+    CONNECTED_SITE = 60  # There is only site-wide IPv4 and/or IPv6 connectivity. This means a default route is available, but the Internet connectivity check (see "Connectivity" property) did not succeed. The graphical shell should indicate limited network connectivity.
+    CONNECTED_GLOBAL = 70  # There is global IPv4 and/or IPv6 Internet connectivity This means the Internet connectivity check succeeded, the graphical shell should indicate full network connectivity.
+
+
+class Event(Enum):
+    NmPropertiesChanged = 0
+    ApPropertiesChanged = 1
+
+
+nm_bus_name = 'org.freedesktop.NetworkManager'
+nm_bus_path = '/org/freedesktop/NetworkManager'
+props_iface_name = 'org.freedesktop.DBus.Properties'
+nm_iface_name = 'org.freedesktop.NetworkManager'
+device_iface_name = 'org.freedesktop.NetworkManager.Device'
+ap_iface_name = 'org.freedesktop.NetworkManager.AccessPoint'
+connection_iface_name = 'org.freedesktop.NetworkManager.Connection.Active'
+
+connection_definition = get_interface_definition(connection_iface_name)
+device_definition = get_interface_definition(device_iface_name)
+nm_definition = get_interface_definition(nm_iface_name)
+ap_definition = get_interface_definition(ap_iface_name)
+
+# globals
+loop = asyncio.get_event_loop()
+access_point_properties_iface = None
+context = {
+    'strength': 0,
+    'ssid': '',
+    'state': NMState.DISCONNECTED,
+}
+last_status = ''
+bus = MessageBus(bus_type=BusType.SYSTEM)
+block = Block(os.path.basename(__file__))
+queue = Queue()
+
+
+def make_bars(strength):
+    if strength > 87.5:
+        return '▂▄▆█'
+    elif strength > 62.5:
+        return '▂▄▆<span color="white">█</span>'
+    elif strength > 37.5:
+        return '▂▄<span color="white">▆█</span>'
+    elif strength > 12.5:
+        return '▂<span color="white">▄▆█</span>'
+    else:
+        return '<span color="white">▂▄▆█</span>'
+
+
+def make_state_icon(state):
+    if state is NMState.UNKNOWN:
+        return '❓'
+    if state is NMState.ASLEEP:
+        return '💤'
+    if state is NMState.DISCONNECTED:
+        return '⛔'
+    if state is NMState.DISCONNECTING:
+        return '❗'
+    if state is NMState.CONNECTING:
+        return '🌀'
+    if state is NMState.CONNECTED_LOCAL:
+        return '⚠️'
+    if state is NMState.CONNECTED_SITE:
+        return '⚠️'
+    if state is NMState.CONNECTED_GLOBAL:
+        return '🌐'
+
+
+async def show_block():
+    global last_status
+    text = block.config.get('format-wireless', '%icon %ssid <small>%bars</small>')
+
+    context['bars'] = make_bars(context['strength'])
+    context['icon'] = make_state_icon(context['state'])
+
+    status = block.expand_template(text, context=context)
+
+    if status == last_status:
+        return
+
+    await block.show(text, markup='pango', context=context)
+
+    last_status = status
+
+
+def access_point_properties_changed(iface, properties, invalidated):
+    queue.put_nowait((Event.ApPropertiesChanged, properties))
+
+
+async def set_connection(connection_path):
+    global access_point_properties_iface
+
+    if access_point_properties_iface is not None:
+        access_point_properties_iface.off_properties_changed(access_point_properties_changed)
+        access_point_properties_iface = None
+    if not connection_path or connection_path == '/':
+        context['strength'] = 0
+        context['ssid'] = ''
+        return
+
+    connection_obj = bus.get_proxy_object(nm_bus_name, connection_path, connection_definition)
+    connection_iface = connection_obj.get_interface(connection_iface_name)
+    # this path won't change
+    ap_path = await connection_iface.get_specific_object()
+
+    assert ap_path.startswith('/org/freedesktop/NetworkManager/AccessPoint'), ap_path
+    ap_obj = bus.get_proxy_object(nm_bus_name, ap_path, ap_definition)
+    access_point_properties_iface = ap_obj.get_interface(props_iface_name)
+    access_point_iface = ap_obj.get_interface(ap_iface_name)
+
+    ssid = (await access_point_iface.get_ssid()).decode()
+    strength = await access_point_iface.get_strength()
+
+    context['ssid'] = ssid
+    context['strength'] = strength
+
+    access_point_properties_iface.on_properties_changed(access_point_properties_changed)
+
+
+async def main():
+    await bus.connect()
+    await block.connect()
+
+    nm_obj = bus.get_proxy_object(nm_bus_name, nm_bus_path, nm_definition)
+
+    nm_iface = nm_obj.get_interface(nm_iface_name)
+    nm_props = nm_obj.get_interface(props_iface_name)
+
+    def nm_properties_changed(iface, properties, invalidated):
+        queue.put_nowait((Event.NmPropertiesChanged, properties))
+
+    connection_path = await nm_iface.get_primary_connection()
+    await set_connection(connection_path)
+    nm_props.on_properties_changed(nm_properties_changed)
+
+    queue.put_nowait((Event.NmPropertiesChanged, await nm_props.call_get_all(nm_iface_name)))
+
+    while True:
+        etype, event = await queue.get()
+        do_block_update = False
+        if etype is Event.NmPropertiesChanged:
+            if 'PrimaryConnection' in event:
+                do_block_update = True
+                primary_connection = event['PrimaryConnection'].value
+                await set_connection(primary_connection)
+            if 'State' in event:
+                do_block_update = True
+                state = NMState(event['State'].value)
+                context['state'] = state
+        elif etype is Event.ApPropertiesChanged:
+            if 'Strength' in event:
+                do_block_update = True
+                context['strength'] = event['Strength'].value
+
+        if do_block_update:
+            asyncio.ensure_future(show_block())
+
+
+loop.run_until_complete(main())

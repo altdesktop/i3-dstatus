@@ -25,18 +25,20 @@ def get_interface_definition(iface: str):
 
 
 class Block:
-    def __init__(self, name):
+    def __init__(self, name, bus=None):
         self.name = name
         self.notifications = None
         self.notifications_xml = get_interface_definition('org.freedesktop.Notifications')
+        self.bus = bus
 
     async def connect(self) -> Block:
-        bus = await MessageBus().connect()
-        obj = bus.get_proxy_object('org.freedesktop.Notifications',
-                                   '/org/freedesktop/Notifications', self.notifications_xml)
+        if self.bus is None:
+            self.bus = await MessageBus().connect()
+        obj = self.bus.get_proxy_object('org.freedesktop.Notifications',
+                                        '/org/freedesktop/Notifications', self.notifications_xml)
         self.notifications = obj.get_interface('org.freedesktop.Notifications')
-        obj = bus.get_proxy_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus',
-                                   Node(interfaces=[StatusService().introspect()]))
+        obj = self.bus.get_proxy_object('com.dubstepdish.i3dstatus', '/com/dubstepdish/i3dstatus',
+                                        Node(interfaces=[StatusService().introspect()]))
         self.i3dstatus = obj.get_interface('com.dubstepdish.i3dstatus')
         config_json = await self.i3dstatus.call_get_config(self.name)
         self.config = json.loads(config_json)
