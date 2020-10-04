@@ -83,16 +83,15 @@ async def main():
 
         if e.type == X.SelectionNotify:
             prop = data_window.get_full_property(data_atom, X.AnyPropertyType, sizehint=10000)
-
             contents = ''
             if prop is not None:
-                contents = prop.value.decode()
+                contents = prop.value.decode().strip()
 
-            data_window.delete_property(data_atom)
-
-            context = {'text': format_clipboard_text(contents.strip())}
-
-            await block.show(clipboard_format, markup='pango', context=context)
+            if contents:
+                context = {'text': format_clipboard_text(contents)}
+                await block.show(clipboard_format, markup='pango', context=context)
+            else:
+                await block.clear()
 
             continue
 
