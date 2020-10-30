@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import copy
 from dbus_next import Variant
 from dbus_next.aio import MessageBus
 from dbus_next.introspection import Node
@@ -30,6 +31,7 @@ class Block:
         self.notifications = None
         self.notifications_xml = get_interface_definition('org.freedesktop.Notifications')
         self.bus = bus
+        self.last_block = {}
 
     async def connect(self) -> Block:
         if self.bus is None:
@@ -77,7 +79,9 @@ class Block:
         if instance:
             block['instance'] = Variant('s', instance)
 
-        await self.i3dstatus.call_show_block(block)
+        if block != self.last_block:
+            await self.i3dstatus.call_show_block(block)
+            self.last_block = copy.deepcopy(block)
 
     async def notify(self, message):
         if self.notifications:
