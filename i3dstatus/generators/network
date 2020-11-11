@@ -54,16 +54,18 @@ queue = Queue()
 
 
 def make_bars(strength):
+    active = '#268bd2'
+    inactive = '#4f9cd1'
     if strength > 87.5:
-        return '▂▄▆█'
+        return f'<span color="{active}">▂▄▆█</span>'
     elif strength > 62.5:
-        return '▂▄▆<span color="white">█</span>'
+        return f'<span color="{active}">▂▄▆</span><span color="{inactive}">█</span>'
     elif strength > 37.5:
-        return '▂▄<span color="white">▆█</span>'
+        return f'<span color="{active}">▂▄</span><span color="{inactive}">▆█</span>'
     elif strength > 12.5:
-        return '▂<span color="white">▄▆█</span>'
+        return f'<span color="{active}">▂</span><span color="{inactive}">▄▆█</span>'
     else:
-        return '<span color="white">▂▄▆█</span>'
+        return f'<span color="{inactive}">▂▄▆█</span>'
 
 
 def make_state_icon(state):
