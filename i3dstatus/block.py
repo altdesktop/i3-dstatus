@@ -92,3 +92,6 @@ class Block:
     async def error(self, message):
         # TODO error log
         await self.notify(message)
+
+    async def wait_for_disconnect(self):
+        await self.bus.wait_for_disconnect()

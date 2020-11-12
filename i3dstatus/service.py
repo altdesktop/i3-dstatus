@@ -9,7 +9,10 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import datetime
 import traceback
 from enum import Enum
+import signal
+import functools
 
+from i3ipc.aio import Connection
 from dbus_next.service import ServiceInterface, method
 from dbus_next.aio import MessageBus
 import asyncio
@@ -41,6 +44,9 @@ class Generator:
                                                                     env=environ,
                                                                     stdout=PIPE,
                                                                     stderr=PIPE)
+
+    async def stop(self):
+        self.proc.kill()
         await self.proc.wait()
 
 
@@ -48,11 +54,13 @@ class StatusService(ServiceInterface):
     def __init__(self):
         super().__init__('com.dubstepdish.i3dstatus')
 
-    def start(self, generators, stream=sys.stdout, config={}):
+    async def start(self, generators, bus, stream=sys.stdout, config={}):
         self.blocks = []
         self.generators = generators
+        self.generator_procs = []
         self.config = config if config else {}
         self.stream = stream
+        self.loop = asyncio.get_event_loop()
 
         script_dir = os.path.dirname(__file__)
 
@@ -63,7 +71,6 @@ class StatusService(ServiceInterface):
                     if generator not in self.generators:
                         self.generators.append(generator)
 
-        paths = []
         # arguments are the names of generators to run
         for generator in generators:
             generator_path = ''
@@ -73,16 +80,15 @@ class StatusService(ServiceInterface):
                 generator_path = os.path.join(script_dir, 'generators', generator)
 
             if os.path.isfile(generator_path):
-                paths.append(generator_path)
+                self.generator_procs.append(Generator(generator_path))
             else:
                 sys.stderr.write("Could not find generator: {}".format(generator))
+
+        await asyncio.gather(*(g.start() for g in self.generator_procs))
 
         self.stream.write('{"version":1}\n[\n[]\n')
         # self.stream..write('{"version":1, "click_events":true}\n[\n[]\n')
         self.stream.flush()
-
-        for generator_path in paths:
-            asyncio.ensure_future(Generator(generator_path).start())
 
         if 'general' in self.config:
             if 'order' in self.config['general']:
@@ -163,6 +169,10 @@ class StatusService(ServiceInterface):
             log_level, block_name, message),
               file=sys.stderr)
 
+    async def cleanup(self):
+        await asyncio.gather(*[asyncio.ensure_future(g.stop()) for g in self.generator_procs])
+        self.generator_procs.clear()
+
 
 async def start():
     description = '''\
@@ -222,11 +232,10 @@ example usage:
 
     try:
         bus = await MessageBus().connect()
-        await bus.request_name('com.dubstepdish.i3dstatus')
-
         service = StatusService()
-        service.start(args.generators, config=config)
         bus.export('/com/dubstepdish/i3dstatus', service)
+        await bus.request_name('com.dubstepdish.i3dstatus')
+        await service.start(args.generators, bus, config=config)
     except Exception as e:
         with open('/tmp/i3-dstatus-error.log', 'a') as f:
             f.write("ERROR - " + str(datetime.datetime.now()) + "\n")
@@ -234,8 +243,30 @@ example usage:
             f.write('\n')
         raise e
 
-    loop = asyncio.get_event_loop()
-    await loop.create_future()
+    i3 = await Connection().connect()
+
+    signals = (signal.SIGINT, signal.SIGTERM)
+    terminating_signal = None
+
+    def on_shutdown(*args):
+        nonlocal terminating_signal
+        i3.main_quit()
+        bus.disconnect()
+        if args and args[0] in [s.value for s in signals]:
+            terminating_signal = args[0]
+
+    for sig in signals:
+        signal.signal(sig, on_shutdown)
+
+    i3.on('shutdown', on_shutdown)
+
+    try:
+        await asyncio.wait([i3.main(), bus.wait_for_disconnect()],
+                           return_when=asyncio.FIRST_COMPLETED)
+    finally:
+        await service.cleanup()
+        if terminating_signal is not None:
+            sys.exit(130)
 
 
 if __name__ == '__main__':

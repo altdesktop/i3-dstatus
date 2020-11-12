@@ -99,7 +99,7 @@ async def main(loop):
 
     battery_properties.on_properties_changed(signal_handler)
 
-    await loop.create_future()
+    await block.wait_for_disconnect()
 
 
 loop = asyncio.get_event_loop()
