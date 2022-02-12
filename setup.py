@@ -22,11 +22,5 @@ setup(
 
     scripts=['i3-dstatus'],
 
-    entry_points={
-        'console_scripts': [
-            'i3-dstatus = i3dstatus.__main__:main'
-            ]
-        },
-
     packages=find_packages(),
 )
