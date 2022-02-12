@@ -4,6 +4,7 @@ from i3dstatus.block import Block
 
 from Xlib.display import Display
 from Xlib.protocol import rq
+from Xlib.ext import xfixes
 from Xlib import X, Xatom
 
 import html
@@ -15,19 +16,6 @@ block = Block(os.path.basename(__file__))
 
 truncate_length = 50
 clipboard_format = '%text'
-
-
-class SelectSelectionInput(rq.Request):
-    _request = rq.Struct(rq.Card8('opcode'), rq.Opcode(2), rq.RequestLength(), rq.Window('window'),
-                         rq.Card32('selection'), rq.Card32('mask'))
-
-
-def select_selection_input(self, window, selection, mask):
-    return SelectSelectionInput(opcode=self.display.get_extension_major('XFIXES'),
-                                display=self.display,
-                                window=window,
-                                selection=selection,
-                                mask=mask)
 
 
 def format_clipboard_text(cb):
@@ -44,22 +32,12 @@ def format_clipboard_text(cb):
 
 async def main():
     global clipboard_format, truncate_length
+    await block.connect()
+    clipboard_format = block.config.get('format', clipboard_format)
+    truncate_length = block.config.get('truncate-length', truncate_length)
 
     display = Display()
     root = display.screen().root
-
-    await block.connect()
-
-    if 'format' in block.config:
-        clipboard_format = block.config['format']
-    if 'truncate-length' in block.config:
-        truncate_length = block.config['truncate-length']
-
-    try:
-        display.extension_add_method('display', 'xfixes_select_selection_input',
-                                     select_selection_input)
-    except AssertionError:
-        pass
 
     if display.query_extension('XFIXES') is None:
         msg = 'XFIXES extension not supported'
@@ -69,7 +47,10 @@ async def main():
     display.xfixes_query_version()
 
     sel_atom = display.get_atom('CLIPBOARD')
-    display.xfixes_select_selection_input(root, sel_atom, 1 | 2 | 4)
+    mask = xfixes.XFixesSetSelectionOwnerNotifyMask | \
+           xfixes.XFixesSelectionWindowDestroyNotifyMask | \
+           xfixes.XFixesSelectionClientCloseNotifyMask
+    display.xfixes_select_selection_input(root, sel_atom, mask)
 
     data_atom = display.get_atom('XSEL_DATA')
     target_name = 'UTF8_STRING'
@@ -78,25 +59,31 @@ async def main():
     data_window = root.create_window(0, 0, 10, 10, 0, X.CopyFromParent)
     data_window.convert_selection(sel_atom, target_atom, data_atom, X.CurrentTime)
 
+    selection_sub_events = [
+        display.extension_event.SetSelectionOwnerNotify,
+        display.extension_event.SelectionWindowDestroyNotify,
+        display.extension_event.SelectionClientCloseNotify
+    ]
+
     while True:
         e = display.next_event()
-
         if e.type == X.SelectionNotify:
             prop = data_window.get_full_property(data_atom, X.AnyPropertyType, sizehint=10000)
 
             contents = ''
             if prop is not None:
-                contents = prop.value.decode()
+                contents = prop.value.decode().strip()
 
-            data_window.delete_property(data_atom)
-
-            context = {'text': format_clipboard_text(contents.strip())}
-
-            await block.show(clipboard_format, markup='pango', context=context)
-
-            continue
-
-        data_window.convert_selection(sel_atom, target_atom, data_atom, X.CurrentTime)
+            if contents:
+                context = {'text': format_clipboard_text(contents)}
+                await block.show(clipboard_format, markup='pango', context=context)
+            else:
+                await block.clear()
+        elif (e.type, e.sub_code) in selection_sub_events:
+            if e.owner.id:
+                data_window.convert_selection(sel_atom, target_atom, data_atom, X.CurrentTime)
+            else:
+                await block.clear()
 
 
 loop = asyncio.get_event_loop()

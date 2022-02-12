@@ -18,7 +18,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
 
-    package_data={'i3dstatus': ['generators/*']},
+    package_data={'i3dstatus': ['generators/*', 'interfaces/*']},
 
     scripts=['i3-dstatus'],
 

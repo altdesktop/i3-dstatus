@@ -31,6 +31,8 @@ in a cron!).
 -  Update the statusline from any language (even from the command line!)
 -  No complicated plugin api to learn
 
+`Chat <https://discord.gg/UdbXHVX>`__
+
 Installing
 ----------
 

@@ -1,200 +1,105 @@
 #!/usr/bin/env python3
 
-from i3dstatus.block import Block
+from i3dstatus.block import Block, get_interface_definition
 
 from dbus_next.aio import MessageBus
 from dbus_next import BusType
 import sys
 import os
 import asyncio
+import copy
 
 block = Block(os.path.basename(__file__))
 bus = MessageBus(bus_type=BusType.SYSTEM)
 
-upower_xml = '''
-<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-                      "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node>
-  <interface name="org.freedesktop.DBus.Properties">
-    <method name="Get">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="s" name="property_name" direction="in"/>
-      <arg type="v" name="value" direction="out"/>
-    </method>
-    <method name="GetAll">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="a{sv}" name="properties" direction="out"/>
-    </method>
-    <method name="Set">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="s" name="property_name" direction="in"/>
-      <arg type="v" name="value" direction="in"/>
-    </method>
-    <signal name="PropertiesChanged">
-      <arg type="s" name="interface_name"/>
-      <arg type="a{sv}" name="changed_properties"/>
-      <arg type="as" name="invalidated_properties"/>
-    </signal>
-  </interface>
-  <interface name="org.freedesktop.UPower">
-    <method name="EnumerateDevices">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-      <arg type="ao" name="devices" direction="out"/>
-    </method>
-    <method name="GetDisplayDevice">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-      <arg type="o" name="device" direction="out"/>
-    </method>
-    <method name="GetCriticalAction">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-      <arg type="s" name="action" direction="out"/>
-    </method>
-    <signal name="DeviceAdded">
-      <arg type="o" name="device"/>
-    </signal>
-    <signal name="DeviceRemoved">
-      <arg type="o" name="device"/>
-    </signal>
-    <property type="s" name="DaemonVersion" access="read"/>
-    <property type="b" name="OnBattery" access="read"/>
-    <property type="b" name="LidIsClosed" access="read"/>
-    <property type="b" name="LidIsPresent" access="read"/>
-  </interface>
-  <node name="Wakeups"/>
-  <node name="devices"/>
-</node>'''
+context = {'name': '', 'percentage': 0.0, 'icon': ''}
 
-upower_device_xml = '''
-<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
-                      "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
-<node>
-  <interface name="org.freedesktop.DBus.Properties">
-    <method name="Get">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="s" name="property_name" direction="in"/>
-      <arg type="v" name="value" direction="out"/>
-    </method>
-    <method name="GetAll">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="a{sv}" name="properties" direction="out"/>
-    </method>
-    <method name="Set">
-      <arg type="s" name="interface_name" direction="in"/>
-      <arg type="s" name="property_name" direction="in"/>
-      <arg type="v" name="value" direction="in"/>
-    </method>
-    <signal name="PropertiesChanged">
-      <arg type="s" name="interface_name"/>
-      <arg type="a{sv}" name="changed_properties"/>
-      <arg type="as" name="invalidated_properties"/>
-    </signal>
-  </interface>
-  <interface name="org.freedesktop.UPower.Device">
-    <method name="Refresh">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-    </method>
-    <method name="GetHistory">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-      <arg type="s" name="type" direction="in"/>
-      <arg type="u" name="timespan" direction="in"/>
-      <arg type="u" name="resolution" direction="in"/>
-      <arg type="a(udu)" name="data" direction="out"/>
-    </method>
-    <method name="GetStatistics">
-      <annotation name="org.freedesktop.DBus.GLib.Async" value=""/>
-      <arg type="s" name="type" direction="in"/>
-      <arg type="a(dd)" name="data" direction="out"/>
-    </method>
-    <property type="s" name="NativePath" access="read"/>
-    <property type="s" name="Vendor" access="read"/>
-    <property type="s" name="Model" access="read"/>
-    <property type="s" name="Serial" access="read"/>
-    <property type="t" name="UpdateTime" access="read"/>
-    <property type="u" name="Type" access="read"/>
-    <property type="b" name="PowerSupply" access="read"/>
-    <property type="b" name="HasHistory" access="read"/>
-    <property type="b" name="HasStatistics" access="read"/>
-    <property type="b" name="Online" access="read"/>
-    <property type="d" name="Energy" access="read"/>
-    <property type="d" name="EnergyEmpty" access="read"/>
-    <property type="d" name="EnergyFull" access="read"/>
-    <property type="d" name="EnergyFullDesign" access="read"/>
-    <property type="d" name="EnergyRate" access="read"/>
-    <property type="d" name="Voltage" access="read"/>
-    <property type="d" name="Luminosity" access="read"/>
-    <property type="x" name="TimeToEmpty" access="read"/>
-    <property type="x" name="TimeToFull" access="read"/>
-    <property type="d" name="Percentage" access="read"/>
-    <property type="d" name="Temperature" access="read"/>
-    <property type="b" name="IsPresent" access="read"/>
-    <property type="u" name="State" access="read"/>
-    <property type="b" name="IsRechargeable" access="read"/>
-    <property type="d" name="Capacity" access="read"/>
-    <property type="u" name="Technology" access="read"/>
-    <property type="u" name="WarningLevel" access="read"/>
-    <property type="u" name="BatteryLevel" access="read"/>
-    <property type="s" name="IconName" access="read"/>
-  </interface>
-</node>'''
+
+def state_to_icon(state, percentage):
+    '''https://upower.freedesktop.org/docs/Device.html'''
+    if state == 0:
+        # unknown
+        return ''
+    elif state == 1:
+        # charging
+        return '🔌'
+    elif state == 2:
+        # discharging
+        if percentage < 10.0:
+            return '⚠️'
+        else:
+            return '🔋'
+    elif state == 3:
+        # empty
+        return '🚫'
+    elif state == 4:
+        # fully charged
+        return '⚡'
+    elif state == 5:
+        # pending charged (?)
+        return '🔌'
+    elif state == 6:
+        # pending discharge (?)
+        if percentage < 10.0:
+            return '⚠️'
+        else:
+            return '🔋'
+    return ''
 
 
 async def update_status(properties, battery_format, battery_name):
-    context = {
-        'name': battery_name,
-        'percentage': '',
-    }
+    global context
+    new_context = copy.deepcopy(context)
 
     if 'Percentage' in properties:
-        context['percentage'] = properties['Percentage'].value
+        new_context['percentage'] = round(properties['Percentage'].value)
 
-    await block.show(battery_format, markup='pango', context=context)
+    if 'State' in properties:
+        percentage = new_context['percentage']
+        new_context['icon'] = state_to_icon(properties['State'].value, percentage)
+
+    if new_context == context:
+        return
+
+    await block.show(battery_format, markup='pango', context=new_context)
+    context = new_context
 
 
 async def main(loop):
+    upower_device_xml = get_interface_definition('org.freedesktop.UPower.Device')
     await asyncio.gather(bus.connect(), block.connect())
 
-    battery_format = '%name %percentage%'
-    battery_path = ''
+    battery_format = '%percentage%'
+    battery_path = '/org/freedesktop/UPower/devices/DisplayDevice'
+    name = 'DisplayDevice'
 
     if 'format' in block.config:
         battery_format = block.config['format']
+
     if 'name' in block.config:
+        name = block.config['name']
         battery_path = '/org/freedesktop/UPower/devices/battery_' \
-                + block.config['name']
-
-    if not battery_path:
-        obj = bus.get_proxy_object('org.freedesktop.UPower', '/org/freedesktop/UPower', upower_xml)
-        upower = obj.get_interface('org.freedesktop.UPower')
-        devices = await upower.call_enumerate_devices()
-
-        for d in devices:
-            name = d.split('/')[-1]
-            if name.startswith('battery_'):
-                battery_path = d
-                break
-
-    if not battery_path:
-        await block.error('could not find a battery')
-        sys.exit(1)
-
-    battery_name = battery_path.split('/')[-1][len('battery_'):]
+                + name
+    else:
+        battery_path = '/org/freedesktop/UPower/devices/DisplayDevice'
 
     battery_obj = bus.get_proxy_object('org.freedesktop.UPower', battery_path, upower_device_xml)
 
     battery_properties = battery_obj.get_interface('org.freedesktop.DBus.Properties')
 
-    percentage = await battery_properties.call_get('org.freedesktop.UPower.Device', 'Percentage')
+    properties = await battery_properties.call_get_all('org.freedesktop.UPower.Device')
 
-    await update_status({'Percentage': percentage}, battery_format, battery_name)
+    await update_status(properties, battery_format, name)
 
     def signal_handler(interface, properties, invalidated):
         # TODO handle more properties
-        if 'Percentage' in properties:
-            asyncio.ensure_future(update_status(properties, battery_format, battery_name))
+        handled_properties = ['Percentage', 'State']
+        if any(item in properties for item in handled_properties):
+            asyncio.ensure_future(update_status(properties, battery_format, name))
 
     battery_properties.on_properties_changed(signal_handler)
 
-    await loop.create_future()
+    await block.wait_for_disconnect()
 
 
 loop = asyncio.get_event_loop()
